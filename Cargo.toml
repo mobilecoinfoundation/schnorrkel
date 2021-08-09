@@ -1,6 +1,6 @@
 [package]
-name = "schnorrkel"
-version = "0.10.1"
+name = "schnorrkel-og"
+version = "0.10.2"
 authors = ["Jeff Burdges <jeff@web3.foundation>"]
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -29,9 +29,8 @@ version = "0.5.2"
 default-features = false
 
 [dependencies.curve25519-dalek]
-package = "curve25519-dalek-ng"
-# git = "https://github.com/dalek-cryptography/curve25519-dalek"
-version = "4.0"
+package = "curve25519-dalek"
+version = "4.0.0-pre.1"
 default-features = false
 
 # [dependencies.ed25519-dalek]
@@ -40,7 +39,6 @@ default-features = false
 # optional = true
 
 [dependencies.subtle]
-package = "subtle-ng"
 version = "2.2.1"
 default-features = false
 
@@ -129,3 +127,7 @@ getrandom = ["rand_core/getrandom"]
 # See https://github.com/rust-lang/cargo/issues/9210
 # and https://github.com/w3f/schnorrkel/issues/65#issuecomment-786923588
 
+[patch.crates-io]
+
+# Fixes for nightly-2021-07-21
+curve25519-dalek = { git = "https://github.com/jcape/curve25519-dalek.git", rev = "46d07765b228d43fe910eb6a1769143f8fc366bb" }
