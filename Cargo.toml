@@ -1,6 +1,6 @@
 [package]
-name = "schnorrkel"
-version = "0.10.1"
+name = "schnorrkel-og"
+version = "0.10.2"
 authors = ["Jeff Burdges <jeff@web3.foundation>"]
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -29,9 +29,8 @@ version = "0.5.2"
 default-features = false
 
 [dependencies.curve25519-dalek]
-package = "curve25519-dalek-ng"
-# git = "https://github.com/dalek-cryptography/curve25519-dalek"
-version = "4.0"
+package = "curve25519-dalek"
+version = "4.0.0-pre.1"
 default-features = false
 
 # [dependencies.ed25519-dalek]
@@ -40,7 +39,6 @@ default-features = false
 # optional = true
 
 [dependencies.subtle]
-package = "subtle-ng"
 version = "2.2.1"
 default-features = false
 
