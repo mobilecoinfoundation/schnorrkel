@@ -127,7 +127,3 @@ getrandom = ["rand_core/getrandom"]
 # See https://github.com/rust-lang/cargo/issues/9210
 # and https://github.com/w3f/schnorrkel/issues/65#issuecomment-786923588
 
-[patch.crates-io]
-
-# Fixes for nightly-2021-07-21
-curve25519-dalek = { git = "https://github.com/jcape/curve25519-dalek.git", rev = "46d07765b228d43fe910eb6a1769143f8fc366bb" }
