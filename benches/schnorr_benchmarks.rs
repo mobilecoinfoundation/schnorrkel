@@ -13,7 +13,7 @@ use criterion::{BenchmarkId, Criterion, criterion_main, criterion_group};
 
 mod schnorr_benches {
     use super::*;
-    use schnorrkel::{signing_context, verify_batch, Keypair, PublicKey, Signature}; // SecretKey
+    use schnorrkel_og::{signing_context, verify_batch, Keypair, PublicKey, Signature}; // SecretKey
 
     // TODO: fn sign_mini(c: &mut Criterion)
 

@@ -22,7 +22,7 @@
 //! # #[cfg(all(feature = "std"))]
 //! # fn main() {
 //! use rand::{Rng, rngs::OsRng};
-//! use schnorrkel::{Keypair,Signature};
+//! use schnorrkel_og::{Keypair,Signature};
 //!
 //! let keypair: Keypair = Keypair::generate_with(OsRng);
 //! # }
@@ -37,7 +37,7 @@
 //! # fn main() {
 //! # use rand::{SeedableRng}; // Rng
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair,Signature,signing_context};
+//! # use schnorrkel_og::{Keypair,Signature,signing_context};
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair: Keypair = Keypair::generate_with(&mut csprng);
 //! let context = signing_context(b"this signature does this thing");
@@ -53,7 +53,7 @@
 //! # fn main() {
 //! # use rand::{SeedableRng}; // Rng
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair,Signature,signing_context};
+//! # use schnorrkel_og::{Keypair,Signature,signing_context};
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair: Keypair = Keypair::generate_with(&mut csprng);
 //! # let context = signing_context(b"this signature does this thing");
@@ -70,8 +70,8 @@
 //! # fn main() {
 //! # use rand::{SeedableRng}; // Rng
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair,Signature,signing_context};
-//! use schnorrkel::PublicKey;
+//! # use schnorrkel_og::{Keypair,Signature,signing_context};
+//! use schnorrkel_og::PublicKey;
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair: Keypair = Keypair::generate_with(&mut csprng);
 //! # let context = signing_context(b"this signature does this thing");
@@ -94,8 +94,8 @@
 //! # fn main() {
 //! # use rand::{Rng, SeedableRng};
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair, Signature, PublicKey, signing_context};
-//! use schnorrkel::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
+//! # use schnorrkel_og::{Keypair, Signature, PublicKey, signing_context};
+//! use schnorrkel_og::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair: Keypair = Keypair::generate_with(&mut csprng);
 //! # let context = signing_context(b"this signature does this thing");
@@ -115,8 +115,8 @@
 //! ```
 //! # use rand::{Rng, SeedableRng};
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{SecretKey, Keypair, Signature, PublicKey, SignatureError, signing_context};
-//! # use schnorrkel::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
+//! # use schnorrkel_og::{SecretKey, Keypair, Signature, PublicKey, SignatureError, signing_context};
+//! # use schnorrkel_og::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 //! # fn do_test() -> Result<(SecretKey, PublicKey, Keypair, Signature), SignatureError> {
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair_orig: Keypair = Keypair::generate_with(&mut csprng);
@@ -158,7 +158,7 @@
 //! # fn main() {
 //! # use rand::{Rng, SeedableRng};
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair, Signature, PublicKey, signing_context};
+//! # use schnorrkel_og::{Keypair, Signature, PublicKey, signing_context};
 //! use bincode::{serialize};
 //! # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
 //! # let keypair: Keypair = Keypair::generate_with(&mut csprng);
@@ -183,7 +183,7 @@
 //! # fn main() {
 //! # use rand::{Rng, SeedableRng};
 //! # use rand_chacha::ChaChaRng;
-//! # use schnorrkel::{Keypair, Signature, PublicKey, signing_context};
+//! # use schnorrkel_og::{Keypair, Signature, PublicKey, signing_context};
 //! # use bincode::{serialize};
 //! use bincode::{deserialize};
 //!
