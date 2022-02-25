@@ -295,7 +295,7 @@ impl Keypair {
     /// by prehashing your message, like
     ///
     /// ```
-    /// use schnorrkel::{Signature,Keypair};
+    /// use schnorrkel_og::{Signature,Keypair};
     /// use rand::prelude::*; // ThreadRng,thread_rng
     /// use sha3::Shake128;
     /// use sha3::digest::{Update};
@@ -321,7 +321,7 @@ impl Keypair {
     /// one purpose can be substituted for the other.
     ///
     /// ```
-    /// # use schnorrkel::{Keypair,Signature,signing_context};
+    /// # use schnorrkel_og::{Keypair,Signature,signing_context};
     /// # use rand::prelude::*; // ThreadRng,thread_rng
     /// # use sha3::digest::Update;
     /// #
@@ -362,7 +362,7 @@ impl Keypair {
     /// # Examples
     ///
     /// ```
-    /// use schnorrkel::{Keypair,Signature,signing_context};
+    /// use schnorrkel_og::{Keypair,Signature,signing_context};
     /// use rand::prelude::*; // ThreadRng,thread_rng
     ///
     /// # fn main() {

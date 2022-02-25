@@ -51,7 +51,7 @@ const ASSERT_MESSAGE: &'static str = "The number of messages/transcripts, signat
 /// # Examples
 ///
 /// ```
-/// use schnorrkel::{Keypair,PublicKey,Signature,verify_batch,signing_context};
+/// use schnorrkel_og::{Keypair,PublicKey,Signature,verify_batch,signing_context};
 ///
 /// # fn main() {
 /// let ctx = signing_context(b"some batch");

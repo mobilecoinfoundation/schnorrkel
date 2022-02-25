@@ -1,6 +1,6 @@
 [package]
 name = "schnorrkel-og"
-version = "0.10.2"
+version = "0.11.0-pre.0"
 authors = ["Jeff Burdges <jeff@web3.foundation>"]
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -16,7 +16,7 @@ edition = "2018"
 # travis-ci = { repository = "dalek-cryptography/ed25519-dalek", branch = "master"}
 
 [dependencies.aead]
-version = "0.4.0"
+version = "0.4.3"
 default-features = false
 optional = true
 
@@ -25,25 +25,21 @@ version = "0.3.6"
 default-features = false
 
 [dependencies.arrayvec]
-version = "0.5.2"
+# needs to match parity-scale-code which is "=0.7.0"
+version = "0.7.0"
 default-features = false
 
 [dependencies.curve25519-dalek]
 package = "curve25519-dalek"
-version = "4.0.0-pre.1"
+version = "4.0.0-pre.2"
 default-features = false
-
-# [dependencies.ed25519-dalek]
-# version = "1.0.0"
-# default-features = false
-# optional = true
 
 [dependencies.subtle]
 version = "2.2.1"
 default-features = false
 
 [dependencies.merlin]
-version = "3.0"
+version = "3.0.0"
 # features = ["debug-transcript"]
 default-features = false
 
@@ -53,16 +49,16 @@ default-features = false
 # optional = true
 
 [dependencies.rand_core]
-version = "0.6.2"
+version = "0.6.3"
 default-features = false
 
 [dependencies.rand_chacha]
-version = "0.3"
+version = "0.3.1"
 default-features = false
 optional = true
 
 [dependencies.serde_crate]
-version = "1.0.123"
+version = "1.0.136"
 package = "serde"
 default-features = false
 optional = true
@@ -77,7 +73,7 @@ version = "1.0.0"
 optional = true
 
 [dependencies.sha2]
-version = "0.9.3"
+version = "0.10"
 default-features = false
 
 [dependencies.failure]
@@ -86,20 +82,19 @@ default-features = false
 optional = true
 
 [dependencies.zeroize]
-version = "1.2.0"
+version = "1.5.2"
 default-features = false
 features = ["zeroize_derive"]
 
 [dev-dependencies]
-rand = "0.8.3"
-rand_chacha = "0.3"
+rand = "0.8.4"
+rand_chacha = "0.3.1"
 # hex = "0.3.2"
-hex-literal = "0.2.1"
-sha2 = "0.9.3"
-sha3 = "0.9.1"
-bincode = "1.3.2"
-criterion = "0.3.4"
-serde_json = "1.0.64"
+hex-literal = "0.3.3"
+sha3 = "0.10"
+bincode = "1.3.3"
+criterion = "0.3.5"
+serde_json = "1.0.78"
 
 [[bench]]
 name = "schnorr_benchmarks"
@@ -127,3 +122,5 @@ getrandom = ["rand_core/getrandom"]
 # See https://github.com/rust-lang/cargo/issues/9210
 # and https://github.com/w3f/schnorrkel/issues/65#issuecomment-786923588
 
+[patch.crates-io]
+curve25519-dalek = { git = "https://github.com/mobilecoinfoundation/curve25519-dalek.git", rev = "8791722e0273762552c9a056eaccb7df6baf44d7" }

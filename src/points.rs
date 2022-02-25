@@ -117,9 +117,9 @@ impl RistrettoBoth {
     /// # Example
     ///
     /// ```
-    /// use schnorrkel::points::RistrettoBoth;
-    /// use schnorrkel::PUBLIC_KEY_LENGTH;
-    /// use schnorrkel::SignatureError;
+    /// use schnorrkel_og::points::RistrettoBoth;
+    /// use schnorrkel_og::PUBLIC_KEY_LENGTH;
+    /// use schnorrkel_og::SignatureError;
     ///
     /// # fn doctest() -> Result<RistrettoBoth, SignatureError> {
     /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
