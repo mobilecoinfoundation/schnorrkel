@@ -76,7 +76,9 @@ pub(crate) fn check_scalar(bytes: [u8; 32]) -> SignatureResult<Scalar> {
         return Ok(Scalar::from_bits(bytes))
     }
 
-    Scalar::from_canonical_bytes(bytes).ok_or(SignatureError::ScalarFormatError)
+    let s = Scalar::from_canonical_bytes(bytes);
+    let s = Option::<Scalar>::from(s);
+    s.ok_or(SignatureError::ScalarFormatError)
 }
 
 impl Signature {

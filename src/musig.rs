@@ -658,6 +658,7 @@ impl<T: SigningTranscript+Clone> MuSig<T,CosignStage> {
     {
         let theirs = Scalar::from_canonical_bytes(theirs.0)
             .ok_or(SignatureError::ScalarFormatError) ?;
+        let theirs = Option::<Scalar>::from(theirs).ok_or(SignatureError::ScalarFormatError)?;
         match self.Rs.entry(them) {
             Entry::Vacant(_) => {
                     let musig_stage = MultiSignatureStage::Reveal;
@@ -725,6 +726,7 @@ impl<T: SigningTranscript+Clone> MuSig<T,CollectStage> {
         let reveal = their_reveal.into_points() ?;
         let s = Scalar::from_canonical_bytes(their_cosignature.0)
             .ok_or(SignatureError::ScalarFormatError) ?;
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
         let cor = CoR::Collect { reveal, s };
 
         match self.Rs.entry(them) {
