@@ -18,10 +18,13 @@ use curve25519_dalek::scalar::Scalar;
 use super::*;
 use crate::context::SigningTranscript;
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-#[cfg(feature = "std")]
-use std::vec::Vec;
+cfg_if::cfg_if! {
+ if #[cfg(feature = "alloc")] {
+        use alloc::vec::Vec;
+    } else if #[cfg(feature = "std")] {
+        use std::vec::Vec;
+    }
+}
 
 const ASSERT_MESSAGE: &'static str =
     "The number of messages/transcripts, signatures, and public keys must be equal.";
@@ -436,10 +439,13 @@ pub fn reserve_mut<'heap, T>(heap: &mut &'heap mut [T], len: usize) -> &'heap mu
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "alloc")]
-    use alloc::vec::Vec;
-    #[cfg(feature = "std")]
-    use std::vec::Vec;
+    cfg_if::cfg_if! {
+     if #[cfg(feature = "alloc")] {
+            use alloc::vec::Vec;
+        } else if #[cfg(feature = "std")] {
+            use std::vec::Vec;
+        }
+    }
 
     use rand::prelude::*; // ThreadRng,thread_rng
 
