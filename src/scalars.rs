@@ -14,7 +14,6 @@
 
 // use curve25519_dalek::scalar::Scalar;
 
-
 pub(crate) fn divide_scalar_bytes_by_cofactor(scalar: &mut [u8; 32]) {
     let mut low = 0u8;
     for i in scalar.iter_mut().rev() {

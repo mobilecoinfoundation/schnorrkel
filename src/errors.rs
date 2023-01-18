@@ -17,7 +17,6 @@
 use core::fmt;
 use core::fmt::Display;
 
-
 /// `Result` specialized to this crate for convenience.
 pub type SignatureResult<T> = Result<T, SignatureError>;
 
@@ -86,7 +85,7 @@ pub enum SignatureError {
         /// Describes the type returning the error
         description: &'static str,
         /// Length expected by the constructor in bytes
-        length: usize
+        length: usize,
     },
     /// Signature not marked as schnorrkel, maybe try ed25519 instead.
     NotMarkedSchnorrkel,
@@ -108,12 +107,11 @@ pub enum SignatureError {
         /// duplicate disagrees.
         duplicate: bool,
     },
-
     // /// Reveal did not match commitment
     // InvalidReveal,
-// other multisig errors
-// AbsentCommitment
-// InvalidCommitment
+    // other multisig errors
+    // AbsentCommitment
+    // InvalidCommitment
 }
 
 /*
@@ -129,24 +127,38 @@ impl Display for SignatureError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::SignatureError::*;
         match *self {
-            EquationFalse =>
-                write!(f, "Verification equation failed"),
-            PointDecompressionError =>
-                write!(f, "Cannot decompress Ristretto point"),
-            ScalarFormatError =>
-                write!(f, "Cannot use scalar with high-bit set"),
-            BytesLengthError { name, length, .. } =>
-                write!(f, "{} must be {} bytes in length", name, length),
-            NotMarkedSchnorrkel => 
-                write!(f, "Signature bytes not marked as a schnorrkel signature"),
-            MuSigAbsent { musig_stage, } =>
-                write!(f, "Absent {} violated multi-signature protocol", musig_stage),
-            MuSigInconsistent { musig_stage, duplicate, } =>
+            EquationFalse => write!(f, "Verification equation failed"),
+            PointDecompressionError => write!(f, "Cannot decompress Ristretto point"),
+            ScalarFormatError => write!(f, "Cannot use scalar with high-bit set"),
+            BytesLengthError { name, length, .. } => {
+                write!(f, "{} must be {} bytes in length", name, length)
+            }
+            NotMarkedSchnorrkel => {
+                write!(f, "Signature bytes not marked as a schnorrkel signature")
+            }
+            MuSigAbsent { musig_stage } => write!(
+                f,
+                "Absent {} violated multi-signature protocol",
+                musig_stage
+            ),
+            MuSigInconsistent {
+                musig_stage,
+                duplicate,
+            } => {
                 if duplicate {
-                    write!(f, "Inconsistent duplicate {} in multi-signature", musig_stage)
+                    write!(
+                        f,
+                        "Inconsistent duplicate {} in multi-signature",
+                        musig_stage
+                    )
                 } else {
-                    write!(f, "Inconsistent {} violated multi-signature protocol", musig_stage)
-                },
+                    write!(
+                        f,
+                        "Inconsistent {} violated multi-signature protocol",
+                        musig_stage
+                    )
+                }
+            }
         }
     }
 }
@@ -160,18 +172,19 @@ impl failure::Fail for SignatureError {}
 /// `impl From<SignatureError> for E where E: serde::de::Error`.
 #[cfg(feature = "serde")]
 pub fn serde_error_from_signature_error<E>(err: SignatureError) -> E
-where E: serde_crate::de::Error
+where
+    E: serde_crate::de::Error,
 {
     use self::SignatureError::*;
     match err {
-        PointDecompressionError
-            => E::custom("Ristretto point decompression failed"),
-        ScalarFormatError
-            => E::custom("improper scalar has high-bit set"),  // TODO ed25519 v high 3 bits?
-        BytesLengthError{ description, length, .. }
-            => E::invalid_length(length, &description),
-        NotMarkedSchnorrkel
-            => E::custom("Signature bytes not marked as a schnorrkel signature"),
+        PointDecompressionError => E::custom("Ristretto point decompression failed"),
+        ScalarFormatError => E::custom("improper scalar has high-bit set"), // TODO ed25519 v high 3 bits?
+        BytesLengthError {
+            description,
+            length,
+            ..
+        } => E::invalid_length(length, &description),
+        NotMarkedSchnorrkel => E::custom("Signature bytes not marked as a schnorrkel signature"),
         _ => panic!("Non-serialisation error encountered by serde!"),
     }
 }

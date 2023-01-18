@@ -220,34 +220,42 @@ extern crate std;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use rand_core::{RngCore,CryptoRng};
+use rand_core::{CryptoRng, RngCore};
 
 // Removed rand dependency because naming the same feature std_rng on rand
-// and getrandom on rand_code is too confusing to propogate correctly. 
+// and getrandom on rand_code is too confusing to propogate correctly.
 // Use transcript.attach_rng(::rand::thread_rng()) when signing if you
 // application suffers from this performance regression.
 
-// #[cfg(all(feature = "getrandom", feature = "rand"))] 
+// #[cfg(all(feature = "getrandom", feature = "rand"))]
 // fn rand_hack() -> impl RngCore+CryptoRng {
 //     rand::thread_rng()
 //  }
- 
-// #[cfg(all(feature = "getrandom", not(feature = "rand")))] 
-#[cfg(feature = "getrandom")] 
-fn rand_hack() -> impl RngCore+CryptoRng {
+
+// #[cfg(all(feature = "getrandom", not(feature = "rand")))]
+#[cfg(feature = "getrandom")]
+fn rand_hack() -> impl RngCore + CryptoRng {
     rand_core::OsRng
 }
 
 #[cfg(not(feature = "getrandom"))]
-fn rand_hack() -> impl RngCore+CryptoRng {
+fn rand_hack() -> impl RngCore + CryptoRng {
     const PRM: &'static str = "Attempted to use functionality that requires system randomness!!";
 
     struct PanicRng;
     impl rand_core::RngCore for PanicRng {
-        fn next_u32(&mut self) -> u32 {  panic!("{}", PRM)  }
-        fn next_u64(&mut self) -> u64 {  panic!("{}", PRM)  }
-        fn fill_bytes(&mut self, _dest: &mut [u8]) {  panic!("{}", PRM)  }
-        fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand_core::Error> {  panic!("{}", PRM)  }
+        fn next_u32(&mut self) -> u32 {
+            panic!("{}", PRM)
+        }
+        fn next_u64(&mut self) -> u64 {
+            panic!("{}", PRM)
+        }
+        fn fill_bytes(&mut self, _dest: &mut [u8]) {
+            panic!("{}", PRM)
+        }
+        fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand_core::Error> {
+            panic!("{}", PRM)
+        }
     }
     impl rand_core::CryptoRng for PanicRng {}
 
@@ -257,16 +265,16 @@ fn rand_hack() -> impl RngCore+CryptoRng {
 #[macro_use]
 mod serdey;
 
+pub mod keys;
 pub mod points;
 mod scalars;
-pub mod keys;
 
+pub mod cert;
 pub mod context;
+pub mod derive;
+pub mod errors;
 pub mod sign;
 pub mod vrf;
-pub mod derive;
-pub mod cert;
-pub mod errors;
 
 #[cfg(feature = "aead")]
 pub mod aead;
@@ -278,10 +286,10 @@ mod batch;
 #[cfg(feature = "std")]
 pub mod musig;
 
+pub use crate::context::signing_context; // SigningContext,SigningTranscript
+pub use crate::errors::{SignatureError, SignatureResult};
 pub use crate::keys::*; // {MiniSecretKey,SecretKey,PublicKey,Keypair,ExpansionMode}; + *_LENGTH
-pub use crate::context::{signing_context}; // SigningContext,SigningTranscript
-pub use crate::sign::{Signature,SIGNATURE_LENGTH};
-pub use crate::errors::{SignatureError,SignatureResult};
+pub use crate::sign::{Signature, SIGNATURE_LENGTH};
 
 #[cfg(any(feature = "alloc", feature = "std"))]
-pub use crate::batch::{verify_batch,verify_batch_rng,verify_batch_deterministic,PreparedBatch};
+pub use crate::batch::{verify_batch, verify_batch_deterministic, verify_batch_rng, PreparedBatch};

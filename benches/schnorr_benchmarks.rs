@@ -9,7 +9,7 @@
 // - isis agora lovecruft <isis@patternsinthevoid.net>
 // - Jeff Burdges <jeff@web3.foundation>
 
-use criterion::{BenchmarkId, Criterion, criterion_main, criterion_group};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 mod schnorr_benches {
     use super::*;
@@ -77,6 +77,4 @@ mod schnorr_benches {
     }
 }
 
-criterion_main!(
-    schnorr_benches::schnorr_benches,
-);
+criterion_main!(schnorr_benches::schnorr_benches,);

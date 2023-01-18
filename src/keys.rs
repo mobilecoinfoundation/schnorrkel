@@ -11,21 +11,20 @@
 //! ### Schnorr signatures on the 2-torsion free subgroup of ed25519, as provided by the Ristretto point compression.
 
 use core::convert::AsRef;
-use core::fmt::{Debug};
+use core::fmt::Debug;
 
-use rand_core::{RngCore,CryptoRng};
+use rand_core::{CryptoRng, RngCore};
 
 use curve25519_dalek::constants;
-use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
-use subtle::{Choice,ConstantTimeEq};
+use subtle::{Choice, ConstantTimeEq};
 use zeroize::Zeroize;
 
-use crate::scalars;
+use crate::errors::{SignatureError, SignatureResult};
 use crate::points::RistrettoBoth;
-use crate::errors::{SignatureError,SignatureResult};
-
+use crate::scalars;
 
 /// The length of a Ristretto Schnorr `MiniSecretKey`, in bytes.
 pub const MINI_SECRET_KEY_LENGTH: usize = 32;
@@ -44,7 +43,6 @@ pub const SECRET_KEY_LENGTH: usize = SECRET_KEY_KEY_LENGTH + SECRET_KEY_NONCE_LE
 
 /// The length of an Ristretto Schnorr `Keypair`, in bytes.
 pub const KEYPAIR_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
-
 
 /// Methods for expanding a `MiniSecretKey` into a `SecretKey`.
 ///
@@ -94,9 +92,9 @@ pub enum ExpansionMode {
 /// homomorphic properties unavailable from these seeds, so we renamed
 /// these and reserve `SecretKey` for what EdDSA calls an extended
 /// secret key.
-#[derive(Clone,Zeroize)]
+#[derive(Clone, Zeroize)]
 #[zeroize(drop)]
-pub struct MiniSecretKey(pub (crate) [u8; MINI_SECRET_KEY_LENGTH]);
+pub struct MiniSecretKey(pub(crate) [u8; MINI_SECRET_KEY_LENGTH]);
 
 impl Debug for MiniSecretKey {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -117,13 +115,13 @@ impl ConstantTimeEq for MiniSecretKey {
 }
 
 impl MiniSecretKey {
-    const DESCRIPTION : &'static str = "Analogous to ed25519 secret key as 32 bytes, see RFC8032.";
+    const DESCRIPTION: &'static str = "Analogous to ed25519 secret key as 32 bytes, see RFC8032.";
 
     /// Avoids importing `ExpansionMode`
-    pub const UNIFORM_MODE : ExpansionMode = ExpansionMode::Uniform;
+    pub const UNIFORM_MODE: ExpansionMode = ExpansionMode::Uniform;
 
     /// Avoids importing `ExpansionMode`
-    pub const ED25519_MODE : ExpansionMode = ExpansionMode::Ed25519;
+    pub const ED25519_MODE: ExpansionMode = ExpansionMode::Ed25519;
 
     /// Expand this `MiniSecretKey` into a `SecretKey`
     ///
@@ -180,7 +178,10 @@ impl MiniSecretKey {
     /// # }
     /// ```
     fn expand_ed25519(&self) -> SecretKey {
-        use sha2::{Sha512, digest::{Update,FixedOutput}};
+        use sha2::{
+            digest::{FixedOutput, Update},
+            Sha512,
+        };
 
         let mut h = Sha512::default();
         h.update(self.as_bytes());
@@ -190,9 +191,9 @@ impl MiniSecretKey {
         // we do so to improve Ed25519 comparability.
         let mut key = [0u8; 32];
         key.copy_from_slice(&r.as_slice()[0..32]);
-        key[0]  &= 248;
-        key[31] &=  63;
-        key[31] |=  64;
+        key[0] &= 248;
+        key[31] &= 63;
+        key[31] |= 64;
         // We then divide by the cofactor to internally keep a clean
         // representation mod l.
         scalars::divide_scalar_bytes_by_cofactor(&mut key);
@@ -201,7 +202,7 @@ impl MiniSecretKey {
         let mut nonce = [0u8; 32];
         nonce.copy_from_slice(&r.as_slice()[32..64]);
 
-        SecretKey{ key, nonce }
+        SecretKey { key, nonce }
     }
 
     /// Derive the `SecretKey` corresponding to this `MiniSecretKey`.
@@ -276,7 +277,7 @@ impl MiniSecretKey {
             return Err(SignatureError::BytesLengthError {
                 name: "MiniSecretKey",
                 description: MiniSecretKey::DESCRIPTION,
-                length: MINI_SECRET_KEY_LENGTH
+                length: MINI_SECRET_KEY_LENGTH,
             });
         }
         let mut bits: [u8; 32] = [0u8; 32];
@@ -299,7 +300,8 @@ impl MiniSecretKey {
     ///
     /// A CSPRNG with a `fill_bytes()` method, e.g. `rand_chacha::ChaChaRng`
     pub fn generate_with<R>(mut csprng: R) -> MiniSecretKey
-    where R: CryptoRng + RngCore,
+    where
+        R: CryptoRng + RngCore,
     {
         let mut sk: MiniSecretKey = MiniSecretKey([0u8; 32]);
         csprng.fill_bytes(&mut sk.0);
@@ -336,7 +338,6 @@ impl MiniSecretKey {
 
 serde_boilerplate!(MiniSecretKey);
 
-
 /// A secret key for use with Ristretto Schnorr signatures.
 ///
 /// Internally, these consist of a scalar mod l along with a seed for
@@ -350,21 +351,25 @@ serde_boilerplate!(MiniSecretKey);
 /// We do not however attempt to keep the scalar's high bit set, especially
 /// not during hierarchical deterministic key derivations, so some Ed25519
 /// libraries might compute the public key incorrectly from our secret key.
-#[derive(Clone,Zeroize)]
+#[derive(Clone, Zeroize)]
 #[zeroize(drop)]
 pub struct SecretKey {
     /// Actual public key represented as a scalar.
-    pub (crate) key: Scalar,
+    pub(crate) key: Scalar,
     /// Seed for deriving the nonces used in signing.
     ///
     /// We require this be random and secret or else key compromise attacks will ensue.
     /// Any modification here may disrupt some non-public key derivation techniques.
-    pub (crate) nonce: [u8; 32],
+    pub(crate) nonce: [u8; 32],
 }
 
 impl Debug for SecretKey {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "SecretKey {{ key: {:?} nonce: {:?} }}", &self.key, &self.nonce)
+        write!(
+            f,
+            "SecretKey {{ key: {:?} nonce: {:?} }}",
+            &self.key, &self.nonce
+        )
     }
 }
 
@@ -402,7 +407,8 @@ impl From<&MiniSecretKey> for SecretKey {
 */
 
 impl SecretKey {
-    const DESCRIPTION : &'static str = "An ed25519-like expanded secret key as 64 bytes, as specified in RFC8032.";
+    const DESCRIPTION: &'static str =
+        "An ed25519-like expanded secret key as 64 bytes, as specified in RFC8032.";
 
     /// Convert this `SecretKey` into an array of 64 bytes with.
     ///
@@ -448,7 +454,7 @@ impl SecretKey {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> SignatureResult<SecretKey> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SignatureError::BytesLengthError{
+            return Err(SignatureError::BytesLengthError {
                 name: "SecretKey",
                 description: SecretKey::DESCRIPTION,
                 length: SECRET_KEY_LENGTH,
@@ -457,12 +463,12 @@ impl SecretKey {
 
         let mut key: [u8; 32] = [0u8; 32];
         key.copy_from_slice(&bytes[00..32]);
-        let key = Scalar::from_canonical_bytes(key).ok_or(SignatureError::ScalarFormatError) ?;
+        let key = Scalar::from_canonical_bytes(key).ok_or(SignatureError::ScalarFormatError)?;
 
         let mut nonce: [u8; 32] = [0u8; 32];
         nonce.copy_from_slice(&bytes[32..64]);
 
-        Ok(SecretKey{ key, nonce })
+        Ok(SecretKey { key, nonce })
     }
 
     /// Convert this `SecretKey` into an array of 64 bytes, corresponding to
@@ -483,7 +489,7 @@ impl SecretKey {
         bytes
     }
 
-    /* Unused tooling removed to reduce dependencies. 
+    /* Unused tooling removed to reduce dependencies.
     /// Convert this `SecretKey` into an Ed25519 expanded secret key.
     #[cfg(feature = "ed25519_dalek")]
     pub fn to_ed25519_expanded_secret_key(&self) -> ed25519_dalek::ExpandedSecretKey {
@@ -509,7 +515,7 @@ impl SecretKey {
     #[inline]
     pub fn from_ed25519_bytes(bytes: &[u8]) -> SignatureResult<SecretKey> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SignatureError::BytesLengthError{
+            return Err(SignatureError::BytesLengthError {
                 name: "SecretKey",
                 description: SecretKey::DESCRIPTION,
                 length: SECRET_KEY_LENGTH,
@@ -529,20 +535,24 @@ impl SecretKey {
         let mut nonce: [u8; 32] = [0u8; 32];
         nonce.copy_from_slice(&bytes[32..64]);
 
-        Ok(SecretKey{ key, nonce })
+        Ok(SecretKey { key, nonce })
     }
 
     /// Generate an "unbiased" `SecretKey` directly from a user
     /// suplied `csprng` uniformly, bypassing the `MiniSecretKey`
     /// layer.
     pub fn generate_with<R>(mut csprng: R) -> SecretKey
-    where R: CryptoRng + RngCore,
+    where
+        R: CryptoRng + RngCore,
     {
         let mut key: [u8; 64] = [0u8; 64];
         csprng.fill_bytes(&mut key);
         let mut nonce: [u8; 32] = [0u8; 32];
         csprng.fill_bytes(&mut nonce);
-        SecretKey { key: Scalar::from_bytes_mod_order_wide(&key), nonce }
+        SecretKey {
+            key: Scalar::from_bytes_mod_order_wide(&key),
+            nonce,
+        }
     }
 
     /// Generate an "unbiased" `SecretKey` directly,
@@ -561,12 +571,14 @@ impl SecretKey {
     /// Derive the `PublicKey` corresponding to this `SecretKey`.
     pub fn to_keypair(self) -> Keypair {
         let public = self.to_public();
-        Keypair { secret: self, public }
+        Keypair {
+            secret: self,
+            public,
+        }
     }
 }
 
 serde_boilerplate!(SecretKey);
-
 
 /// A Ristretto Schnorr public key.
 ///
@@ -577,7 +589,7 @@ serde_boilerplate!(SecretKey);
 /// during deserialization, which improves error handling, but costs
 /// a compression during signing and verification.
 #[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PublicKey(pub (crate) RistrettoBoth);
+pub struct PublicKey(pub(crate) RistrettoBoth);
 
 impl Debug for PublicKey {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -607,24 +619,33 @@ impl AsRef<[u8]> for PublicKey {
 }
 
 impl PublicKey {
-    const DESCRIPTION : &'static str = "A Ristretto Schnorr public key represented as a 32-byte Ristretto compressed point";
+    const DESCRIPTION: &'static str =
+        "A Ristretto Schnorr public key represented as a 32-byte Ristretto compressed point";
 
     /// Access the compressed Ristretto form
-    pub fn as_compressed(&self) -> &CompressedRistretto { &self.0.as_compressed() }
+    pub fn as_compressed(&self) -> &CompressedRistretto {
+        &self.0.as_compressed()
+    }
 
     /// Extract the compressed Ristretto form
-    pub fn into_compressed(self) -> CompressedRistretto { self.0.into_compressed() }
+    pub fn into_compressed(self) -> CompressedRistretto {
+        self.0.into_compressed()
+    }
 
     /// Access the point form
-    pub fn as_point(&self) -> &RistrettoPoint { &self.0.as_point() }
+    pub fn as_point(&self) -> &RistrettoPoint {
+        &self.0.as_point()
+    }
 
     /// Extract the point form
-    pub fn into_point(self) -> RistrettoPoint { self.0.into_point() }
+    pub fn into_point(self) -> RistrettoPoint {
+        self.0.into_point()
+    }
 
     /// Decompress into the `PublicKey` format that also retains the
     /// compressed form.
     pub fn from_compressed(compressed: CompressedRistretto) -> SignatureResult<PublicKey> {
-        Ok(PublicKey(RistrettoBoth::from_compressed(compressed) ?))
+        Ok(PublicKey(RistrettoBoth::from_compressed(compressed)?))
     }
 
     /// Compress into the `PublicKey` format that also retains the
@@ -672,7 +693,11 @@ impl PublicKey {
     /// is an `SignatureError` describing the error that occurred.
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> SignatureResult<PublicKey> {
-        Ok(PublicKey(RistrettoBoth::from_bytes_ser("PublicKey",PublicKey::DESCRIPTION,bytes) ?))
+        Ok(PublicKey(RistrettoBoth::from_bytes_ser(
+            "PublicKey",
+            PublicKey::DESCRIPTION,
+            bytes,
+        )?))
     }
 }
 
@@ -684,9 +709,8 @@ impl From<SecretKey> for PublicKey {
 
 serde_boilerplate!(PublicKey);
 
-
 /// A Ristretto Schnorr keypair.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 // #[derive(Clone,Zeroize)]
 // #[zeroize(drop)]
 pub struct Keypair {
@@ -710,12 +734,12 @@ impl Drop for Keypair {
 impl From<SecretKey> for Keypair {
     fn from(secret: SecretKey) -> Keypair {
         let public = secret.to_public();
-        Keypair{ secret, public }
+        Keypair { secret, public }
     }
 }
 
 impl Keypair {
-    const DESCRIPTION : &'static str = "A 96 bytes Ristretto Schnorr keypair";
+    const DESCRIPTION: &'static str = "A 96 bytes Ristretto Schnorr keypair";
     /*
     const DESCRIPTION_LONG : &'static str =
         "An ristretto schnorr keypair, 96 bytes in total, where the \
@@ -746,8 +770,8 @@ impl Keypair {
     pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
         let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
 
-        bytes[..SECRET_KEY_LENGTH].copy_from_slice(& self.secret.to_bytes());
-        bytes[SECRET_KEY_LENGTH..].copy_from_slice(& self.public.to_bytes());
+        bytes[..SECRET_KEY_LENGTH].copy_from_slice(&self.secret.to_bytes());
+        bytes[SECRET_KEY_LENGTH..].copy_from_slice(&self.public.to_bytes());
         bytes
     }
 
@@ -780,13 +804,16 @@ impl Keypair {
             return Err(SignatureError::BytesLengthError {
                 name: "Keypair",
                 description: Keypair::DESCRIPTION,
-                length: KEYPAIR_LENGTH
+                length: KEYPAIR_LENGTH,
             });
         }
-        let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH]) ?;
-        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..]) ?;
+        let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
+        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
 
-        Ok(Keypair{ secret: secret, public: public })
+        Ok(Keypair {
+            secret: secret,
+            public: public,
+        })
     }
 
     /// Serialize `Keypair` to bytes with Ed25519 secret key format.
@@ -801,8 +828,8 @@ impl Keypair {
     pub fn to_half_ed25519_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
         let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
 
-        bytes[..SECRET_KEY_LENGTH].copy_from_slice(& self.secret.to_ed25519_bytes());
-        bytes[SECRET_KEY_LENGTH..].copy_from_slice(& self.public.to_bytes());
+        bytes[..SECRET_KEY_LENGTH].copy_from_slice(&self.secret.to_ed25519_bytes());
+        bytes[SECRET_KEY_LENGTH..].copy_from_slice(&self.public.to_bytes());
         bytes
     }
 
@@ -833,13 +860,16 @@ impl Keypair {
             return Err(SignatureError::BytesLengthError {
                 name: "Keypair",
                 description: Keypair::DESCRIPTION,
-                length: KEYPAIR_LENGTH
+                length: KEYPAIR_LENGTH,
             });
         }
-        let secret = SecretKey::from_ed25519_bytes(&bytes[..SECRET_KEY_LENGTH]) ?;
-        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..]) ?;
+        let secret = SecretKey::from_ed25519_bytes(&bytes[..SECRET_KEY_LENGTH])?;
+        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
 
-        Ok(Keypair{ secret: secret, public: public })
+        Ok(Keypair {
+            secret: secret,
+            public: public,
+        })
     }
 
     /// Generate a Ristretto Schnorr `Keypair` directly,
@@ -866,12 +896,13 @@ impl Keypair {
     /// so our secret keys do not satisfy the high bit "clamping"
     /// imposed on Ed25519 keys.
     pub fn generate_with<R>(csprng: R) -> Keypair
-    where R: CryptoRng + RngCore,
+    where
+        R: CryptoRng + RngCore,
     {
         let secret: SecretKey = SecretKey::generate_with(csprng);
         let public: PublicKey = secret.to_public();
 
-        Keypair{ public, secret }
+        Keypair { public, secret }
     }
 
     /// Generate a Ristretto Schnorr `Keypair` directly, from a user
@@ -883,7 +914,6 @@ impl Keypair {
 }
 
 serde_boilerplate!(Keypair);
-
 
 #[cfg(test)]
 mod test {
@@ -929,10 +959,7 @@ mod test {
     #[test]
     fn derives_from_core() {
         let pk_d = PublicKey::default();
-        debug_assert_eq!(
-            pk_d.as_point().compress(),
-            CompressedRistretto::default()
-        );
+        debug_assert_eq!(pk_d.as_point().compress(), CompressedRistretto::default());
         debug_assert_eq!(
             pk_d.as_compressed().decompress().unwrap(),
             RistrettoPoint::default()
@@ -952,9 +979,7 @@ mod test {
             use core::mem;
             use core::slice;
 
-            unsafe {
-                slice::from_raw_parts(x as *const T as *const u8, mem::size_of_val(x))
-            }
+            unsafe { slice::from_raw_parts(x as *const T as *const u8, mem::size_of_val(x)) }
         }
 
         assert!(!as_bytes(&keypair).iter().all(|x| *x == 0u8));
@@ -967,11 +992,13 @@ mod test {
 
         let mini_secret: MiniSecretKey = MiniSecretKey::generate_with(&mut csprng);
         let secret: SecretKey = mini_secret.expand(ExpansionMode::Ed25519);
-        let public_from_mini_secret: PublicKey = mini_secret.expand_to_public(ExpansionMode::Ed25519);
+        let public_from_mini_secret: PublicKey =
+            mini_secret.expand_to_public(ExpansionMode::Ed25519);
         let public_from_secret: PublicKey = secret.to_public();
         assert!(public_from_mini_secret == public_from_secret);
         let secret: SecretKey = mini_secret.expand(ExpansionMode::Uniform);
-        let public_from_mini_secret: PublicKey = mini_secret.expand_to_public(ExpansionMode::Uniform);
+        let public_from_mini_secret: PublicKey =
+            mini_secret.expand_to_public(ExpansionMode::Uniform);
         let public_from_secret: PublicKey = secret.to_public();
         assert!(public_from_mini_secret == public_from_secret);
     }
