@@ -182,7 +182,8 @@ impl PublicKey {
 
         let mut s = [0u8; 32];
         s.copy_from_slice(&cert_secret.0[32..64]);
-        let s = Scalar::from_canonical_bytes(s).ok_or(SignatureError::ScalarFormatError)?;
+        let s = Scalar::from_canonical_bytes(s);
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
         let cert_public: AdaptorCertPublic = cert_secret.into();
         let gamma = CompressedRistretto(cert_public.0.clone());
         t.commit_point(b"gamma", &gamma);

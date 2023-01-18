@@ -548,8 +548,10 @@ impl VRFProof {
         c.copy_from_slice(&bytes[..32]);
         s.copy_from_slice(&bytes[32..]);
 
-        let c = Scalar::from_canonical_bytes(c).ok_or(SignatureError::ScalarFormatError)?;
-        let s = Scalar::from_canonical_bytes(s).ok_or(SignatureError::ScalarFormatError)?;
+        let c = Scalar::from_canonical_bytes(c);
+        let c = Option::<Scalar>::from(c).ok_or(SignatureError::ScalarFormatError)?;
+        let s = Scalar::from_canonical_bytes(s);
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
         Ok(VRFProof { c, s })
     }
 }
@@ -603,7 +605,8 @@ impl VRFProofBatchable {
         Hr.copy_from_slice(&bytes[32..64]);
         s.copy_from_slice(&bytes[64..96]);
 
-        let s = Scalar::from_canonical_bytes(s).ok_or(SignatureError::ScalarFormatError)?;
+        let s = Scalar::from_canonical_bytes(s);
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
         Ok(VRFProofBatchable {
             R: CompressedRistretto(R),
             Hr: CompressedRistretto(Hr),
