@@ -43,7 +43,7 @@ where
 {
     let mut key: GenericArray<u8, <AEAD as NewAead>::KeySize> = Default::default();
     t.challenge_bytes(b"", key.as_mut_slice());
-    AEAD::new(key)
+    AEAD::new(&key)
 }
 
 impl SecretKey {
@@ -71,7 +71,7 @@ impl SecretKey {
     {
         let mut key: GenericArray<u8, <AEAD as NewAead>::KeySize> = Default::default();
         key.clone_from_slice(self.raw_key_exchange(public).as_bytes());
-        AEAD::new(key)
+        AEAD::new(&key)
     }
 }
 
