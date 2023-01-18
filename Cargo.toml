@@ -102,7 +102,7 @@ name = "schnorr_benchmarks"
 harness = false
 
 [features]
-default = ["std", "getrandom"] # "rand"
+default = ["alloc", "getrandom", "cfg-if"] # "rand"
 preaudit_deprecated = []
 nightly = ["rand/nightly"] # "zeroize/nightly"
 alloc = ["curve25519-dalek/alloc", "rand_core/alloc", "serde_bytes/alloc"]
