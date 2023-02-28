@@ -32,8 +32,8 @@ default-features = false
 [dependencies.curve25519-dalek]
 package = "curve25519-dalek"
 version = "4.0.0-rc.1"
-default-features = false
-features = ["digest", "precomputed-tables", "zeroize"]
+default-features = true
+features = ["digest"]
 
 [dependencies.subtle]
 version = "2.2.1"
