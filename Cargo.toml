@@ -33,6 +33,7 @@ default-features = false
 package = "curve25519-dalek"
 version = "4.0.0-rc.1"
 default-features = false
+features = ["digest", "precomputed-tables"]
 
 [dependencies.subtle]
 version = "2.2.1"
@@ -101,15 +102,12 @@ name = "schnorr_benchmarks"
 harness = false
 
 [features]
-default = ["std", "u64_backend", "getrandom"] # "rand"
+default = ["std", "getrandom"] # "rand"
 preaudit_deprecated = []
-nightly = ["curve25519-dalek/nightly", "rand/nightly"] # "zeroize/nightly"
+nightly = ["rand/nightly"] # "zeroize/nightly"
 alloc = ["curve25519-dalek/alloc", "rand_core/alloc", "serde_bytes/alloc"]
-std = ["getrandom", "curve25519-dalek/std", "serde_bytes/std"] # "failure/std"
+std = ["getrandom", "serde_bytes/std"] # "failure/std"
 asm = ["sha2/asm"]
-u64_backend = ["curve25519-dalek/u64_backend"]
-u32_backend = ["curve25519-dalek/u32_backend"]
-avx2_backend = ["curve25519-dalek/avx2_backend"]
 serde = ["serde_crate", "serde_bytes", "cfg-if"]
 # We cannot make getrandom a direct dependency because rand_core makes
 # getrandom a feature name, which requires forwarding.
