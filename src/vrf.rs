@@ -640,8 +640,8 @@ impl Keypair {
         if !kusama {  t.commit_point(b"vrf:pk", self.public.as_compressed());  }
 
         // We compute R after adding pk and all h.
-        let mut r = t.witness_scalar(b"proving\00",&[&self.secret.nonce]);
-        let R = (&r * &constants::RISTRETTO_BASEPOINT_TABLE).compress();
+        let mut r = t.witness_scalar(b"proving\00", &[&self.secret.nonce]);
+        let R = (&r * constants::RISTRETTO_BASEPOINT_TABLE).compress();
         t.commit_point(b"vrf:R=g^r", &R);
 
         let Hr = (&r * p.input.as_point()).compress();

@@ -120,7 +120,7 @@ impl Keypair {
         let k = t.witness_scalar(b"issuing",&[ &self.secret.nonce, seed_public_key.as_compressed().as_bytes() ]);
 
         // Compute the public key reconstruction data
-        let gamma = seed_public_key.as_point() + &k * &constants::RISTRETTO_BASEPOINT_TABLE;
+        let gamma = seed_public_key.as_point() + &k * constants::RISTRETTO_BASEPOINT_TABLE;
         let gamma = gamma.compress();
         t.commit_point(b"gamma",&gamma);
         let cert_public = AdaptorCertPublic(gamma.0);
