@@ -641,7 +641,7 @@ impl Keypair {
 
         // We compute R after adding pk and all h.
         let mut r = t.witness_scalar(b"proving\00", &[&self.secret.nonce]);
-        let R = (&r * constants::RISTRETTO_BASEPOINT_TABLE).compress();
+        let R = (&r * constants::RISTRETTO_BASEPOINT_POINT).compress();
         t.commit_point(b"vrf:R=g^r", &R);
 
         let Hr = (&r * p.input.as_point()).compress();

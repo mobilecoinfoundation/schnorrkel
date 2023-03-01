@@ -32,8 +32,8 @@ default-features = false
 [dependencies.curve25519-dalek]
 package = "curve25519-dalek"
 version = "4.0.0-rc.1"
-default-features = true
-features = ["digest"]
+default-features = false
+features = ["digest", "zeroize"]
 
 [dependencies.subtle]
 version = "2.2.1"

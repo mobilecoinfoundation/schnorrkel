@@ -556,7 +556,7 @@ impl SecretKey {
     /// Derive the `PublicKey` corresponding to this `SecretKey`.
     pub fn to_public(&self) -> PublicKey {
         // No clamping necessary in the ristretto255 group
-        PublicKey::from_point(&self.key * constants::RISTRETTO_BASEPOINT_TABLE)
+        PublicKey::from_point(&self.key * constants::RISTRETTO_BASEPOINT_POINT)
     }
 
     /// Derive the `PublicKey` corresponding to this `SecretKey`.
