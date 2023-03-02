@@ -109,6 +109,7 @@ alloc = ["curve25519-dalek/alloc", "rand_core/alloc", "serde_bytes/alloc"]
 std = ["getrandom", "serde_bytes/std"] # "failure/std"
 asm = ["sha2/asm"]
 serde = ["serde_crate", "serde_bytes", "cfg-if"]
+precomputed-tables = ["curve25519-dalek/precomputed-tables"]
 # We cannot make getrandom a direct dependency because rand_core makes
 # getrandom a feature name, which requires forwarding.
 getrandom = ["rand_core/getrandom"]

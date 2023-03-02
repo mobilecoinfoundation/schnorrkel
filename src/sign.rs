@@ -179,7 +179,7 @@ impl SecretKey {
         t.commit_point(b"sign:pk",public_key.as_compressed());
 
         let mut r = t.witness_scalar(b"signing", &[&self.nonce]); // context, message, A/public_key
-        let R = (&r * constants::RISTRETTO_BASEPOINT_POINT).compress();
+        let R = RistrettoPoint::mul_base(&r).compress();
 
         t.commit_point(b"sign:R",&R);
 
