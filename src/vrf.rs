@@ -86,7 +86,6 @@ use alloc::{boxed::Box, vec::Vec};
 #[cfg(feature = "std")]
 use std::{boxed::Box, vec::Vec};
 
-use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::{IsIdentity}; // Identity
@@ -959,7 +958,7 @@ pub fn dleq_verify_batch(
             .chain(once(B_coefficient)),
         proofs.iter().map(|proof| proof.R.decompress())
             .chain(public_keys.iter().map(|pk| Some(*pk.as_point())))
-            .chain(once(Some(constants::RISTRETTO_BASEPOINT_POINT))),
+            .chain(once(Some(curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT))),
     ).map(|id| id.is_identity()).unwrap_or(false);
 
     // Compute (∑ z[i] s[i] (mod l)) Input[i] + ∑ (z[i] c[i] (mod l)) Output[i] - ∑ z[i] Hr[i] = 0
