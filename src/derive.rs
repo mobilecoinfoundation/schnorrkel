@@ -29,7 +29,7 @@
 // use curve25519_dalek::digest::Digest;
 
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::{constants, RistrettoPoint};
+use curve25519_dalek::RistrettoPoint;
 
 use super::*;
 use crate::context::{SigningTranscript};

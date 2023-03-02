@@ -15,8 +15,7 @@ use core::fmt::{Debug};
 
 use rand_core::{RngCore,CryptoRng};
 
-use curve25519_dalek::constants;
-use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
 use subtle::{Choice,ConstantTimeEq};
