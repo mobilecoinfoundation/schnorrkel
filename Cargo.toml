@@ -50,7 +50,7 @@ default-features = false
 # optional = true
 
 [dependencies.rand_core]
-version = "0.6.2"
+version = "0.6.3"
 default-features = false
 
 [dependencies.rand_chacha]
