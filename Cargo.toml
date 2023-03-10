@@ -71,7 +71,6 @@ optional = true
 
 [dependencies.cfg-if]
 version = "1.0.0"
-optional = true
 
 [dependencies.sha2]
 version = "0.10"
@@ -102,13 +101,13 @@ name = "schnorr_benchmarks"
 harness = false
 
 [features]
-default = ["alloc", "getrandom", "cfg-if"] # "rand"
+default = ["alloc", "getrandom"] # "rand"
 preaudit_deprecated = []
 nightly = ["rand/nightly"] # "zeroize/nightly"
 alloc = ["curve25519-dalek/alloc", "rand_core/alloc", "serde_bytes/alloc"]
 std = ["getrandom", "serde_bytes/std"] # "failure/std"
 asm = ["sha2/asm"]
-serde = ["serde_crate", "serde_bytes", "cfg-if"]
+serde = ["serde_crate", "serde_bytes"]
 precomputed-tables = ["curve25519-dalek/precomputed-tables"]
 # We cannot make getrandom a direct dependency because rand_core makes
 # getrandom a feature name, which requires forwarding.
