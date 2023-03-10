@@ -81,10 +81,13 @@ use core::borrow::Borrow;
 #[cfg(any(feature = "alloc", feature = "std"))]
 use core::iter::once;
 
-#[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
-#[cfg(feature = "std")]
-use std::{boxed::Box, vec::Vec};
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        use alloc::{boxed::Box, vec::Vec};
+    } else if #[cfg(feature = "std")] {
+        use std::{boxed::Box, vec::Vec};
+    }
+}
 
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;

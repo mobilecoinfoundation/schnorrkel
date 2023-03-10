@@ -33,17 +33,21 @@
 
 use core::borrow::{Borrow};  // BorrowMut
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        use alloc::{collections::btree_map::{BTreeMap, Entry}};
+    } else if #[cfg(feature = "std")] {
+        use std::{collections::btree_map::{BTreeMap, Entry}};
+    }
+}
 #[cfg(feature = "alloc")]
-use alloc::{collections::btree_map::{BTreeMap, Entry}};
 #[cfg(feature = "std")]
-use std::{collections::btree_map::{BTreeMap, Entry}};
 
 use arrayref::array_ref;
 use arrayvec::ArrayVec;
 
 use merlin::Transcript;
 
-use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
