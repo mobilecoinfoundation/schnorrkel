@@ -28,8 +28,8 @@
 // use curve25519_dalek::digest::generic_array::typenum::U64;
 // use curve25519_dalek::digest::Digest;
 
-use curve25519_dalek::constants;
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::RistrettoPoint;
 
 use super::*;
 use crate::context::{SigningTranscript};
@@ -222,7 +222,7 @@ impl Derivation for PublicKey {
     where T: SigningTranscript
     {
         let (scalar, chaincode) = self.derive_scalar_and_chaincode(&mut t, cc);
-        let point = self.as_point() + (&scalar * &constants::RISTRETTO_BASEPOINT_TABLE);
+        let point = self.as_point() + RistrettoPoint::mul_base(&scalar);
         (PublicKey::from_point(point), chaincode)
     }
 }

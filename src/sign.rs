@@ -14,8 +14,7 @@
 
 use core::fmt::{Debug};
 
-use curve25519_dalek::constants;
-use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
 use super::*;
@@ -76,7 +75,9 @@ pub(crate) fn check_scalar(bytes: [u8; 32]) -> SignatureResult<Scalar> {
         return Ok(Scalar::from_bits(bytes))
     }
 
-    Scalar::from_canonical_bytes(bytes).ok_or(SignatureError::ScalarFormatError)
+    let s = Scalar::from_canonical_bytes(bytes);
+    let s = Option::<Scalar>::from(s);
+    s.ok_or(SignatureError::ScalarFormatError)
 }
 
 impl Signature {
@@ -176,8 +177,8 @@ impl SecretKey {
         t.proto_name(b"Schnorr-sig");
         t.commit_point(b"sign:pk",public_key.as_compressed());
 
-        let mut r = t.witness_scalar(b"signing",&[&self.nonce]);  // context, message, A/public_key
-        let R = (&r * &constants::RISTRETTO_BASEPOINT_TABLE).compress();
+        let mut r = t.witness_scalar(b"signing", &[&self.nonce]); // context, message, A/public_key
+        let R = RistrettoPoint::mul_base(&r).compress();
 
         t.commit_point(b"sign:R",&R);
 

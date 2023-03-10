@@ -33,17 +33,21 @@
 
 use core::borrow::{Borrow};  // BorrowMut
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        use alloc::{collections::btree_map::{BTreeMap, Entry}};
+    } else if #[cfg(feature = "std")] {
+        use std::{collections::btree_map::{BTreeMap, Entry}};
+    }
+}
 #[cfg(feature = "alloc")]
-use alloc::{collections::btree_map::{BTreeMap, Entry}};
 #[cfg(feature = "std")]
-use std::{collections::btree_map::{BTreeMap, Entry}};
 
 use arrayref::array_ref;
 use arrayvec::ArrayVec;
 
 use merlin::Transcript;
 
-use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
@@ -493,9 +497,8 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
         let r_me = r_me.into_inner().unwrap();
         // context, message, nonce, but not &self.public.compressed
 
-        let B = &constants::RISTRETTO_BASEPOINT_TABLE;
         let R_me_points: ArrayVec<RistrettoPoint, REWINDS> = r_me.iter()
-            .map(|r_me_i| r_me_i * B).collect();
+            .map(|r_me_i| RistrettoPoint::mul_base(r_me_i )).collect();
         let R_me_points = RevealedPoints(R_me_points.into_inner().unwrap());
         let R_me = R_me_points.to_reveal();
 
@@ -656,8 +659,8 @@ impl<T: SigningTranscript+Clone> MuSig<T,CosignStage> {
     pub fn add_their_cosignature(&mut self, them: PublicKey, theirs: Cosignature)
      -> SignatureResult<()>
     {
-        let theirs = Scalar::from_canonical_bytes(theirs.0)
-            .ok_or(SignatureError::ScalarFormatError) ?;
+        let theirs = Scalar::from_canonical_bytes(theirs.0);
+        let theirs = Option::<Scalar>::from(theirs).ok_or(SignatureError::ScalarFormatError)?;
         match self.Rs.entry(them) {
             Entry::Vacant(_) => {
                     let musig_stage = MultiSignatureStage::Reveal;
@@ -723,8 +726,8 @@ impl<T: SigningTranscript+Clone> MuSig<T,CollectStage> {
      -> SignatureResult<()>
     {
         let reveal = their_reveal.into_points() ?;
-        let s = Scalar::from_canonical_bytes(their_cosignature.0)
-            .ok_or(SignatureError::ScalarFormatError) ?;
+        let s = Scalar::from_canonical_bytes(their_cosignature.0);
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
         let cor = CoR::Collect { reveal, s };
 
         match self.Rs.entry(them) {

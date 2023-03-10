@@ -50,9 +50,9 @@
 //
 // Found [4] via https://download.wpsoftware.net/bitcoin/wizardry/mw-slides/2018-05-18-l2/slides.pdf via [1]
 
-use curve25519_dalek::constants;
-use curve25519_dalek::ristretto::{CompressedRistretto};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::RistrettoPoint;
 
 use super::*;
 use crate::context::SigningTranscript;
@@ -120,7 +120,7 @@ impl Keypair {
         let k = t.witness_scalar(b"issuing",&[ &self.secret.nonce, seed_public_key.as_compressed().as_bytes() ]);
 
         // Compute the public key reconstruction data
-        let gamma = seed_public_key.as_point() + &k * &constants::RISTRETTO_BASEPOINT_TABLE;
+        let gamma = seed_public_key.as_point() + RistrettoPoint::mul_base(&k);
         let gamma = gamma.compress();
         t.commit_point(b"gamma",&gamma);
         let cert_public = AdaptorCertPublic(gamma.0);
@@ -172,8 +172,9 @@ impl PublicKey {
 
         let mut s = [0u8; 32];
         s.copy_from_slice(&cert_secret.0[32..64]);
-        let s = Scalar::from_canonical_bytes(s).ok_or(SignatureError::ScalarFormatError) ?;
-        let cert_public : AdaptorCertPublic = cert_secret.into();
+        let s = Scalar::from_canonical_bytes(s);
+        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
+        let cert_public: AdaptorCertPublic = cert_secret.into();
         let gamma = CompressedRistretto(cert_public.0.clone());
         t.commit_point(b"gamma",&gamma);
 
