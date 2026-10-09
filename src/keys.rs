@@ -15,7 +15,6 @@ use core::fmt::{Debug};
 
 use rand_core::{RngCore, CryptoRng};
 
-use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
@@ -575,7 +574,7 @@ impl SecretKey {
     /// Derive the `PublicKey` corresponding to this `SecretKey`.
     pub fn to_public(&self) -> PublicKey {
         // No clamping necessary in the ristretto255 group
-        PublicKey::from_point(&self.key * constants::RISTRETTO_BASEPOINT_TABLE)
+        PublicKey::from_point(RistrettoPoint::mul_base(&self.key))
     }
 
     /// Derive the `PublicKey` corresponding to this `SecretKey`.

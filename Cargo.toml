@@ -20,7 +20,6 @@ arrayvec = { version = "0.7.4", default-features = false }
 curve25519-dalek = { version = "5.0.0", default-features = false, features = [
     "digest",
     "zeroize",
-    "precomputed-tables",
     "legacy_compatibility",
 ] }
 subtle = { version = "2.4.1", default-features = false }
@@ -57,6 +56,7 @@ std = ["alloc", "getrandom", "serde_bytes/std", "rand_core/std", "getrandom_or_p
 # sha2 0.11 picks asm backends by default; kept as a no-op for compatibility.
 asm = []
 serde = ["serde_crate", "serde_bytes", "cfg-if"]
+precomputed-tables = ["curve25519-dalek/precomputed-tables"]
 # We cannot make getrandom a direct dependency because rand_core makes
 # getrandom a feature name, which requires forwarding.
 getrandom = ["rand_core/getrandom", "getrandom_or_panic/getrandom", "aead?/getrandom"]

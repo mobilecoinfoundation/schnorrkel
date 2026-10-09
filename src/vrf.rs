@@ -84,6 +84,7 @@ use core::iter::once;
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, vec::Vec};
 
+#[cfg(feature = "alloc")]
 use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
@@ -657,7 +658,7 @@ impl Keypair {
 
         // We compute R after adding pk and all h.
         let mut r = t.witness_scalar(b"proving\x000",&[&self.secret.nonce]);
-        let R = (&r * constants::RISTRETTO_BASEPOINT_TABLE).compress();
+        let R = RistrettoPoint::mul_base(&r).compress();
         t.commit_point(b"vrf:R=g^r", &R);
 
         let Hr = (r * p.input.as_point()).compress();

@@ -41,7 +41,6 @@ use arrayvec::ArrayVec;
 
 use merlin::Transcript;
 
-use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
@@ -496,9 +495,8 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
         let r_me = r_me.into_inner().unwrap();
         // context, message, nonce, but not &self.public.compressed
 
-        let B = constants::RISTRETTO_BASEPOINT_TABLE;
         let R_me_points: ArrayVec<RistrettoPoint, REWINDS> = r_me.iter()
-            .map(|r_me_i| r_me_i * B).collect();
+            .map(RistrettoPoint::mul_base).collect();
         let R_me_points = RevealedPoints(R_me_points.into_inner().unwrap());
         let R_me = R_me_points.to_reveal();
 

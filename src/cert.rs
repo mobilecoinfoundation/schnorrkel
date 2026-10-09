@@ -49,8 +49,7 @@
 //
 // Found [4] via https://download.wpsoftware.net/bitcoin/wizardry/mw-slides/2018-05-18-l2/slides.pdf via [1]
 
-use curve25519_dalek::constants;
-use curve25519_dalek::ristretto::{CompressedRistretto};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
 use super::*;
@@ -114,7 +113,7 @@ impl Keypair {
         );
 
         // Compute the public key reconstruction data
-        let gamma = seed_public_key.as_point() + &k * constants::RISTRETTO_BASEPOINT_TABLE;
+        let gamma = seed_public_key.as_point() + RistrettoPoint::mul_base(&k);
         let gamma = gamma.compress();
         t.commit_point(b"gamma", &gamma);
         let cert_public = AdaptorCertPublic(gamma.0);
