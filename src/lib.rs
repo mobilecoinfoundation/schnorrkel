@@ -21,10 +21,10 @@
 //! ```
 //! # #[cfg(all(feature = "std"))]
 //! # fn main() {
-//! use rand::{Rng, rngs::OsRng};
+//! use rand::rng;
 //! use schnorrkel::{Keypair,Signature};
 //!
-//! let keypair: Keypair = Keypair::generate_with(OsRng);
+//! let keypair: Keypair = Keypair::generate_with(rng());
 //! # }
 //! #
 //! # #[cfg(any(not(feature = "std")))]
@@ -231,7 +231,9 @@ extern crate std;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use getrandom_or_panic::{RngCore, CryptoRng, getrandom_or_panic};
+use rand_core::CryptoRng;
+#[cfg(feature = "alloc")]
+use rand_core::Rng;
 use curve25519_dalek::scalar::Scalar;
 
 #[macro_use]
@@ -267,6 +269,43 @@ pub use crate::keys::*; // {MiniSecretKey,SecretKey,PublicKey,Keypair,ExpansionM
 pub use crate::context::{signing_context}; // SigningContext,SigningTranscript
 pub use crate::sign::{Signature, SIGNATURE_LENGTH};
 pub use crate::errors::{SignatureError, SignatureResult};
+
+fn getrandom_or_panic() -> impl CryptoRng {
+    use core::convert::Infallible;
+    use rand_core::{TryCryptoRng, TryRng};
+
+    struct GetrandomOrPanic;
+
+    impl TryRng for GetrandomOrPanic {
+        type Error = Infallible;
+
+        fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+            rand_core::utils::next_word_via_fill(self)
+        }
+
+        fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+            rand_core::utils::next_word_via_fill(self)
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+            #[cfg(feature = "getrandom")]
+            {
+                getrandom::fill(dest).expect("system randomness is unavailable");
+                Ok(())
+            }
+
+            #[cfg(not(feature = "getrandom"))]
+            {
+                let _ = dest;
+                panic!("attempted to use functionality that requires system randomness")
+            }
+        }
+    }
+
+    impl TryCryptoRng for GetrandomOrPanic {}
+
+    GetrandomOrPanic
+}
 
 #[cfg(feature = "alloc")]
 pub use crate::batch::{verify_batch, verify_batch_rng, verify_batch_deterministic, PreparedBatch};

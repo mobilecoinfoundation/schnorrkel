@@ -34,7 +34,7 @@ const ASSERT_MESSAGE: &str =
 /// * `signatures` is a slice of `Signature`s.
 /// * `public_keys` is a slice of `PublicKey`s.
 /// * `deduplicate_public_keys`
-/// * `csprng` is an implementation of `RngCore+CryptoRng`, such as `rand::ThreadRng`.
+/// * `csprng` is an implementation of `CryptoRng`, such as `rand::rngs::ThreadRng`.
 ///
 /// # Panics
 ///
@@ -54,7 +54,7 @@ const ASSERT_MESSAGE: &str =
 ///
 /// # fn main() {
 /// let ctx = signing_context(b"some batch");
-/// let mut csprng = rand::thread_rng();
+/// let mut csprng = rand::rng();
 /// let keypairs: Vec<Keypair> = (0..64).map(|_| Keypair::generate_with(&mut csprng)).collect();
 /// let msg: &[u8] = b"They're good dogs Brant";
 /// let signatures:  Vec<Signature> = keypairs.iter().map(|key| key.sign(ctx.bytes(&msg))).collect();
@@ -86,20 +86,24 @@ where
 
 struct NotAnRng;
 #[rustfmt::skip]
-impl rand_core::RngCore for NotAnRng {
-    fn next_u32(&mut self) -> u32 { rand_core::impls::next_u32_via_fill(self) }
+impl rand_core::TryRng for NotAnRng {
+    type Error = core::convert::Infallible;
 
-    fn next_u64(&mut self) -> u64 { rand_core::impls::next_u64_via_fill(self) }
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        rand_core::utils::next_word_via_fill(self)
+    }
+
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        rand_core::utils::next_word_via_fill(self)
+    }
 
     /// A no-op function which leaves the destination bytes for randomness unchanged.
-    fn fill_bytes(&mut self, dest: &mut [u8]) { zeroize::Zeroize::zeroize(dest) }
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        self.fill_bytes(dest);
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+        zeroize::Zeroize::zeroize(dest);
         Ok(())
     }
 }
-impl rand_core::CryptoRng for NotAnRng {}
+impl rand_core::TryCryptoRng for NotAnRng {}
 
 /// Verify a batch of `signatures` on `messages` with their respective `public_keys`.
 ///
@@ -140,7 +144,7 @@ pub fn verify_batch_rng<T,I,R>(
 where
     T: SigningTranscript,
     I: IntoIterator<Item=T>,
-    R: RngCore+CryptoRng,
+    R: CryptoRng,
 {
     assert!(signatures.len() == public_keys.len(), "{}", ASSERT_MESSAGE);  // Check transcripts length below
 
@@ -184,7 +188,7 @@ fn prepare_batch<T,I,R>(
 where
     T: SigningTranscript,
     I: IntoIterator<Item=T>,
-    R: RngCore+CryptoRng,
+    R: CryptoRng,
 {
 
     // Assumulate public keys, signatures, and transcripts for pseudo-random delinearization scalars
@@ -413,8 +417,6 @@ mod test {
     #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
 
-    use rand::prelude::*; // ThreadRng,thread_rng
-
     use super::super::*;
 
     #[cfg(feature = "alloc")]
@@ -430,7 +432,7 @@ mod test {
             b"Fuck dumbin' it down, spit ice, skip jewellery: Molotov cocktails on me like accessories.",
             b"Hey, I never cared about your bucks, so if I run up with a mask on, probably got a gas can too.",
             b"And I'm not here to fill 'er up. Nope, we came to riot, here to incite, we don't want any of your stuff.", ];
-        let mut csprng: ThreadRng = thread_rng();
+        let mut csprng = rand::rng();
         let mut keypairs: Vec<Keypair> = Vec::new();
         let mut signatures: Vec<Signature> = Vec::new();
 

@@ -36,7 +36,7 @@ pub(crate) fn multiply_scalar_bytes_by_cofactor(scalar: &mut [u8; 32]) {
 mod tests {
     use super::*;
     // use ed25519_dalek::SecretKey;
-    use rand::{thread_rng, Rng};
+    use rand::RngExt;
 
     // TODO: Simple test `RistrettoPoint` is implemented as an `EdwardsPoint`
     // #[test]
@@ -45,14 +45,14 @@ mod tests {
 
     #[test]
     fn cofactor_adjustment() {
-        let mut x: [u8; 32] = thread_rng().gen();
+        let mut x: [u8; 32] = rand::rng().random();
         x[31] &= 0b00011111;
         let mut y = x.clone();
         multiply_scalar_bytes_by_cofactor(&mut y);
         divide_scalar_bytes_by_cofactor(&mut y);
         assert_eq!(x, y);
 
-        let mut x: [u8; 32] = thread_rng().gen();
+        let mut x: [u8; 32] = rand::rng().random();
         x[0] &= 0b11111000;
         let mut y = x.clone();
         divide_scalar_bytes_by_cofactor(&mut y);
