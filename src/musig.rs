@@ -30,24 +30,18 @@
 
 // See also https://github.com/lovesh/signature-schemes/issues/2
 
+#![allow(clippy::manual_is_multiple_of)]
 
 use core::borrow::{Borrow};  // BorrowMut
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "alloc")] {
-        use alloc::{collections::btree_map::{BTreeMap, Entry}};
-    } else if #[cfg(feature = "std")] {
-        use std::{collections::btree_map::{BTreeMap, Entry}};
-    }
-}
 #[cfg(feature = "alloc")]
-#[cfg(feature = "std")]
+use alloc::{collections::btree_map::{BTreeMap, Entry}};
 
-use arrayref::array_ref;
 use arrayvec::ArrayVec;
 
 use merlin::Transcript;
 
+use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 
@@ -111,7 +105,9 @@ impl<K,V> AggregatePublicKey for BTreeMap<K,V>
 where K: Borrow<PublicKey>+Ord
 {
     fn weighting(&self, choice: &PublicKey) -> Option<Scalar> {
-        if ! self.contains_key(choice) {  return None;  }
+        if !self.contains_key(choice) {
+            return None;
+        }
         let t0 = commit_public_keys( self.keys().map(|pk| pk.borrow()) );
         Some(compute_weighting(t0, choice))
     }
@@ -164,7 +160,9 @@ impl<'a,K> AggregatePublicKey for AggregatePublicKeySlice<'a,K>
 where K: Borrow<PublicKey>+PartialEq<K>
 {
     fn weighting(&self, choice: &PublicKey) -> Option<Scalar> {
-        if self.0.iter().any(|pk| pk.borrow() == choice) {  return None;  }
+        if self.0.iter().any(|pk| pk.borrow() == choice) {
+            return None;
+        }
         let t0 = commit_public_keys( self.0.iter().map(|pk| pk.borrow()) );
         Some(compute_weighting(t0, choice))
     }
@@ -234,16 +232,12 @@ pub struct Reveal(pub [u8; 32*REWINDS]);
 // TODO: serde_boilerplate!(Reveal);
 
 impl Clone for Reveal {
-    fn clone(&self) -> Reveal { Reveal(self.0.clone()) }
+    fn clone(&self) -> Reveal { Reveal(self.0) }
 }
 impl PartialEq<Reveal> for Reveal {
     #[inline]
     fn eq(&self, other: &Reveal) -> bool {
         self.0[..] == other.0[..]
-    }
-    #[inline]
-    fn ne(&self, other: &Reveal) -> bool {
-        self.0[..] != other.0[..]
     }
 }
 impl Eq for Reveal { }
@@ -255,7 +249,11 @@ impl Reveal {
 
     #[allow(non_snake_case)]
     fn iter_points<'a>(&'a self) -> impl Iterator<Item=CompressedRistretto> + 'a {
-        (&self.0).chunks(32).map( |R| CompressedRistretto( array_ref![R,0,32].clone() ) )
+        // use arrayref::array_ref;
+        self.0.chunks(32).map( |R| CompressedRistretto(
+            // *array_ref![R,0,32]
+            <[u8; 32]>::try_from(R).unwrap()
+        ) )
     }
 
     fn to_commitment(&self) -> SignatureResult<Commitment> {
@@ -263,6 +261,7 @@ impl Reveal {
         Ok(Commitment::for_R( self.iter_points() )) 
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn into_points(&self) -> SignatureResult<RevealedPoints> {
         self.check_length() ?;
         let a = self.iter_points().map(
@@ -497,8 +496,9 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
         let r_me = r_me.into_inner().unwrap();
         // context, message, nonce, but not &self.public.compressed
 
+        let B = constants::RISTRETTO_BASEPOINT_TABLE;
         let R_me_points: ArrayVec<RistrettoPoint, REWINDS> = r_me.iter()
-            .map(|r_me_i| RistrettoPoint::mul_base(r_me_i )).collect();
+            .map(|r_me_i| r_me_i * B).collect();
         let R_me_points = RevealedPoints(R_me_points.into_inner().unwrap());
         let R_me = R_me_points.to_reveal();
 
@@ -520,7 +520,7 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
     {
         let theirs = CoR::Commit(theirs);
         match self.Rs.entry(them) {
-            Entry::Vacant(v) => { v.insert(theirs); () },
+            Entry::Vacant(v) => { v.insert(theirs); },
             Entry::Occupied(o) =>
                 if o.get() != &theirs {
                     let musig_stage = MultiSignatureStage::Commitment;
@@ -598,7 +598,7 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
         let reveal = theirs.into_points() ?;
         let theirs = CoR::Reveal(reveal);
         match self.Rs.entry(them) {
-            Entry::Vacant(v) => { v.insert(theirs); () },
+            Entry::Vacant(v) => { v.insert(theirs); },
             Entry::Occupied(o) =>
                 if o.get() != &theirs {
                     let musig_stage = MultiSignatureStage::Reveal;
@@ -613,7 +613,7 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
     pub fn cosign_stage(mut self) -> MuSig<T,CosignStage> {
         self.t.proto_name(b"Schnorr-sig");
 
-        let pk = self.public_key().as_compressed().clone();
+        let pk = *self.public_key().as_compressed();
         self.t.commit_point(b"sign:pk",&pk);
 
         let rewinder = self.rewinder();
@@ -626,12 +626,12 @@ where K: Borrow<Keypair>, T: SigningTranscript+Clone
         let c = self.t.challenge_scalar(b"sign:c");  // context, message, A/public_key, R=rG
 
         let mut s_me: Scalar = self.stage.r_me.iter().zip(&rewinds).map(|(y,x)| x*y).sum();
-        s_me += &(&c * &a_me * &self.stage.keypair.borrow().secret.key);
+        s_me += c * a_me * self.stage.keypair.borrow().secret.key;
 
         zeroize::Zeroize::zeroize(&mut self.stage.r_me);
 
         let MuSig { t, mut Rs, stage: RevealStage { .. }, } = self;
-        *(Rs.get_mut(&self.stage.keypair.borrow().public).expect("Rs known to contain this public; qed")) = CoR::Cosigned { s: s_me.clone() };
+        *(Rs.get_mut(&self.stage.keypair.borrow().public).expect("Rs known to contain this public; qed")) = CoR::Cosigned { s: s_me };
         MuSig { t, Rs, stage: CosignStage { R, s_me }, }
     }
 }
@@ -659,8 +659,8 @@ impl<T: SigningTranscript+Clone> MuSig<T,CosignStage> {
     pub fn add_their_cosignature(&mut self, them: PublicKey, theirs: Cosignature)
      -> SignatureResult<()>
     {
-        let theirs = Scalar::from_canonical_bytes(theirs.0);
-        let theirs = Option::<Scalar>::from(theirs).ok_or(SignatureError::ScalarFormatError)?;
+        let theirs = crate::scalar_from_canonical_bytes(theirs.0)
+            .ok_or(SignatureError::ScalarFormatError) ?;
         match self.Rs.entry(them) {
             Entry::Vacant(_) => {
                     let musig_stage = MultiSignatureStage::Reveal;
@@ -726,12 +726,12 @@ impl<T: SigningTranscript+Clone> MuSig<T,CollectStage> {
      -> SignatureResult<()>
     {
         let reveal = their_reveal.into_points() ?;
-        let s = Scalar::from_canonical_bytes(their_cosignature.0);
-        let s = Option::<Scalar>::from(s).ok_or(SignatureError::ScalarFormatError)?;
+        let s = crate::scalar_from_canonical_bytes(their_cosignature.0)
+            .ok_or(SignatureError::ScalarFormatError) ?;
         let cor = CoR::Collect { reveal, s };
 
         match self.Rs.entry(them) {
-            Entry::Vacant(v) => { v.insert(cor); () },
+            Entry::Vacant(v) => { v.insert(cor); },
             Entry::Occupied(o) =>
                 if o.get() != &cor {
                     let musig_stage = MultiSignatureStage::Reveal;
@@ -744,16 +744,15 @@ impl<T: SigningTranscript+Clone> MuSig<T,CollectStage> {
     /// Actually computes the collected cosignature.
     #[allow(non_snake_case)]
     pub fn signature(mut self) -> Signature {
-        let pk = self.public_key().as_compressed().clone();
+        let pk = *self.public_key().as_compressed();
         self.t.commit_point(b"sign:pk",&pk);
 
         let R = self.compute_R(self.rewinder());
 
-        let s: Scalar = self.Rs.iter()
-            .map( |(_pk,cor)| match cor {
+        let s: Scalar = self.Rs.values().map(|cor| match cor {
                 CoR::Collect { s, .. } => s,
                 _ => panic!("Reached CollectStage from another stage"),
-            } ).sum();
+            }).sum();
         Signature { s, R, }
     }
 }
@@ -763,8 +762,6 @@ impl<T: SigningTranscript+Clone> MuSig<T,CollectStage> {
 mod tests {
     #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
-    #[cfg(feature = "std")]
-    use std::vec::Vec;
 
     use super::*;
 
