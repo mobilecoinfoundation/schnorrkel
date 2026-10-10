@@ -24,7 +24,7 @@ curve25519-dalek = { version = "5.0.0", default-features = false, features = [
     "legacy_compatibility",
 ] }
 subtle = { version = "2.4.1", default-features = false }
-merlin = { version = "3", git = "https://github.com/mobilecoinofficial/merlin", rev = "cb9528e3a799decf393a02cccb0323134bfdd431", default-features = false }
+merlin = { version = "4", git = "https://github.com/mobilecoinofficial/merlin", rev = "f99baaddf207cd260f07c6c9485d034171c5e277", default-features = false }
 rand_core = { version = "0.10", default-features = false }
 getrandom = { version = "0.4", default-features = false, optional = true }
 serde_crate = { version = "1.0.130", package = "serde", default-features = false, optional = true }
