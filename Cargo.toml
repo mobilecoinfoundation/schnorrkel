@@ -11,6 +11,7 @@ categories = ["cryptography", "no-std"]
 description = "Schnorr VRF, signatures, etc. using the Ristretto group"
 exclude = [".gitignore", "res/*"]
 edition = "2021"
+rust-version = "1.85"
 
 [dependencies]
 aead = { version = "0.6.1", default-features = false, optional = true }
@@ -23,20 +24,20 @@ curve25519-dalek = { version = "5.0.0", default-features = false, features = [
     "legacy_compatibility",
 ] }
 subtle = { version = "2.4.1", default-features = false }
-merlin = { version = "3.0.0", default-features = false }
-getrandom_or_panic = { version = "0.0.3", default-features = false }
-rand_core = { version = "0.6.2", default-features = false }
+merlin = { version = "4", git = "https://github.com/mobilecoinofficial/merlin", rev = "f99baaddf207cd260f07c6c9485d034171c5e277", default-features = false }
+rand_core = { version = "0.10", default-features = false }
+getrandom = { version = "0.4", default-features = false, optional = true }
 serde_crate = { version = "1.0.130", package = "serde", default-features = false, optional = true }
 serde_bytes = { version = "0.11.5", default-features = false, optional = true }
 cfg-if = { version = "1.0.0", optional = true }
 sha2 = { version = "0.11", default-features = false }
 failure = { version = "0.1.8", default-features = false, optional = true }
 zeroize = { version = "1.6", default-features = false, features = ["zeroize_derive"] }
-rand_chacha = { version = "0.3.1", default-features = false, optional = true }
+rand_chacha = { version = "0.10", default-features = false, optional = true }
 
 [dev-dependencies]
-rand = "0.8.5"
-rand_chacha = { version = "0.3.1", default-features = false }
+rand = "0.10"
+rand_chacha = { version = "0.10", default-features = false }
 hex-literal = "1.1.0"
 shake = "0.1"
 bincode = "1.3.3"
@@ -51,20 +52,12 @@ harness = false
 default = ["alloc", "getrandom"]
 preaudit_deprecated = []
 nightly = []
-alloc = ["curve25519-dalek/alloc", "rand_core/alloc", "getrandom_or_panic/alloc", "serde_bytes/alloc"]
-std = ["alloc", "getrandom", "serde_bytes/std", "rand_core/std", "getrandom_or_panic/std"]
+alloc = ["curve25519-dalek/alloc", "serde_bytes/alloc"]
+std = ["alloc", "getrandom", "serde_bytes/std", "getrandom?/std"]
 # sha2 0.11 picks asm backends by default; kept as a no-op for compatibility.
 asm = []
 serde = ["serde_crate", "serde_bytes", "cfg-if"]
 precomputed-tables = ["curve25519-dalek/precomputed-tables"]
-# We cannot make getrandom a direct dependency because rand_core makes
-# getrandom a feature name, which requires forwarding.
-getrandom = ["rand_core/getrandom", "getrandom_or_panic/getrandom", "aead?/getrandom"]
-# We thus cannot forward the wasm-bindgen feature of getrandom,
-# but our consumers could depend upon getrandom and activate its
-# wasm-bindgen feature themselve, which works due to cargo features
-# being additive.
-# wasm-bindgen = ["getrandom/wasm-bindgen"]
-# See https://github.com/rust-lang/cargo/issues/9210
-# and https://github.com/w3f/schnorrkel/issues/65#issuecomment-786923588
+getrandom = ["dep:getrandom", "aead?/getrandom"]
+debug-transcript = ["std", "merlin/std", "merlin/debug-transcript"]
 aead = ["dep:aead"]

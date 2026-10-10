@@ -450,7 +450,7 @@ where T: SigningTranscript+Clone, S: TranscriptStages
     /// that say the message may be agreed upon in parallel to the
     /// commitments.  We advise against doing so however, as this
     /// requires absolute faith in your random number generator,
-    /// usually `rand::thread_rng()`.
+    /// usually `rand::rng()`.
     pub fn transcript(&mut self) -> &mut T { &mut self.t }
 }
 

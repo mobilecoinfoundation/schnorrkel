@@ -23,7 +23,7 @@ DHKEM---but I haven't done more than glance! so this should be
 regarded as a pointer, not a recommendation.
 */
 
-// use rand_core::{RngCore,CryptoRng};
+// use rand_core::{CryptoRng, Rng};
 
 use aead::{
     KeyInit, KeySizeUser,

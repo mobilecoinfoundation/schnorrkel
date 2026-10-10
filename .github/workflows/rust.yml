@@ -34,7 +34,7 @@ jobs:
         run: cargo build --target thumbv7em-none-eabi --release --no-default-features
       # cargo hack ensures all no_std features all built-checked
       - name: no_std / cargo hack features
-        run: cargo hack build --target thumbv7em-none-eabi --release --each-feature --exclude-features default,std,getrandom
+        run: cargo hack build --target thumbv7em-none-eabi --release --each-feature --exclude-features default,std,getrandom,debug-transcript
 
   clippy:
     name: Check that clippy is happy

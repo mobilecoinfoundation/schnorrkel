@@ -253,7 +253,7 @@ mod tests {
     fn adaptor_cert_public_vs_private_paths() {
         let t = signing_context(b"").bytes(b"MrMeow!");
 
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = crate::getrandom_or_panic();
         let issuer = Keypair::generate_with(&mut csprng);
 
         let (cert_public, secret_key) = issuer.issue_self_adaptor_cert(t.clone());
