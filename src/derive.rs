@@ -109,7 +109,7 @@ pub trait Derivation: Sized {
     fn derived_key_simple_rng<B, R>(&self, cc: ChainCode, i: B, rng: R) -> (Self, ChainCode)
     where
         B: AsRef<[u8]>,
-        R: RngCore + CryptoRng,
+        R: CryptoRng,
     {
         let mut t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
         t.append_message(b"sign-bytes", i.as_ref());
@@ -389,7 +389,7 @@ mod tests {
         let msg: &'static [u8] = b"Just some test message!";
         let mut h = Shake128::default().chain(msg);
 
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = crate::getrandom_or_panic();
         let key = Keypair::generate_with(&mut csprng);
 
         let mut extended_public_key = ExtendedKey { key: key.public.clone(), chaincode };

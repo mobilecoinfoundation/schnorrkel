@@ -398,18 +398,17 @@ impl VRFInOut {
         // Very insecure hack except for our commit_witness_bytes below
         struct ZeroFakeRng;
         #[rustfmt::skip]
-        impl rand_core::RngCore for ZeroFakeRng {
-            fn next_u32(&mut self) -> u32 {  panic!()  }
-            fn next_u64(&mut self) -> u64 {  panic!()  }
-            fn fill_bytes(&mut self, dest: &mut [u8]) {
+        impl rand_core::TryRng for ZeroFakeRng {
+            type Error = core::convert::Infallible;
+
+            fn try_next_u32(&mut self) -> Result<u32, Self::Error> {  panic!()  }
+            fn try_next_u64(&mut self) -> Result<u64, Self::Error> {  panic!()  }
+            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
                 for i in dest.iter_mut() {  *i = 0;  }
-            }
-            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-                self.fill_bytes(dest);
                 Ok(())
             }
         }
-        impl rand_core::CryptoRng for ZeroFakeRng {}
+        impl rand_core::TryCryptoRng for ZeroFakeRng {}
 
         let mut t = Transcript::new(b"VRFResult");
         t.append_message(b"", context);
@@ -1051,7 +1050,7 @@ mod tests {
     #[cfg(feature = "getrandom")]
     #[test]
     fn vrf_single() {
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = crate::getrandom_or_panic();
 
         let keypair1 = Keypair::generate_with(&mut csprng);
 
@@ -1090,7 +1089,7 @@ mod tests {
     #[cfg(feature = "getrandom")]
     #[test]
     fn vrf_malleable() {
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = crate::getrandom_or_panic();
 
         let keypair1 = Keypair::generate_with(&mut csprng);
 
@@ -1159,7 +1158,7 @@ mod tests {
     #[cfg(feature = "alloc")]
     #[test]
     fn vrfs_merged_and_batched() {
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = crate::getrandom_or_panic();
         let keypairs: Vec<Keypair> = (0..4).map(|_| Keypair::generate_with(&mut csprng)).collect();
 
         let ctx = signing_context(b"yo!");
