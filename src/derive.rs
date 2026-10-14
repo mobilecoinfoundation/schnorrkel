@@ -7,29 +7,29 @@
 // Authors:
 // - Jeffrey Burdges <jeff@web3.foundation>
 
-//! ### Implementation of "hierarchical deterministic key derivation" (HDKD) for Schnorr signatures on Ristretto 
-//! 
+//! ### Implementation of "hierarchical deterministic key derivation" (HDKD) for Schnorr signatures on Ristretto
+//!
 //! *Warning*  We warn that our VRF construction in vrf.rs supports
 //! malleable VRF outputs via the `Malleable` type, which becomes
 //! insecure when used in conjunction with our hierarchical key
 //! derivation methods here.
-//! Attackers could translate malleable VRF outputs from one soft subkey 
+//! Attackers could translate malleable VRF outputs from one soft subkey
 //! to another soft subkey, gaining early knowledge of the VRF output.
 //! We think most VRF applications for which HDKH sounds suitable
 //! benefit from using implicit certificates instead of HDKD anyways,
 //! which should also be secure in combination with HDKH.
 //! We always use non-malleable VRF inputs in our convenience methods.
 
-//! We suggest using implicit certificates instead of HDKD when 
+//! We suggest using implicit certificates instead of HDKD when
 //! using VRFs.
 //!
-//! 
+//!
 
 // use curve25519_dalek::digest::generic_array::typenum::U64;
 // use curve25519_dalek::digest::Digest;
 
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::RistrettoPoint;
 
 use super::*;
 use crate::context::{SigningTranscript};
@@ -45,21 +45,59 @@ pub const CHAIN_CODE_LENGTH: usize = 32;
 /// chain codes fill this gap by being a high entropy secret shared
 /// between public and private key holders.  These are produced by
 /// key derivations and can be incorporated into subsequence key
-/// derivations. 
+/// derivations.
 /// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#extended-keys
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ChainCode(pub [u8; CHAIN_CODE_LENGTH]);
 
 /// Key types that support "hierarchical deterministic" key derivation
-pub trait Derivation : Sized {
+pub trait Derivation: Sized {
     /// Derive key with subkey identified by a byte array
     /// presented via a `SigningTranscript`, and a chain code.
+    /// 
+    /// This trait allow the derivation of a key from another, according to BIP32 rules.
+    /// The derivation can be performed on a full Keypair, or each of its constituent keys.
+    /// These two ways are equivalent.
+    /// 
+    /// # Example:
+    /// 
+    /// ```
+    /// use schnorrkel::{Keypair,derive::{CHAIN_CODE_LENGTH, ChainCode, Derivation}};
+    ///
+    /// let t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
+    /// let chaincode = ChainCode([0u8; CHAIN_CODE_LENGTH]); // This is an example. In practice, we should use a random value.
+    /// 
+    /// let keypair: Keypair = Keypair::generate();
+    /// let public_key = &keypair.public;
+    /// let secret_key = &keypair.secret;
+    /// 
+    /// let (derived_keypair, _) = keypair.derived_key(t.clone(), chaincode);
+    /// let (derived_public_key, _) = public_key.derived_key(t.clone(), chaincode);
+    /// let (derived_secret_key, _) = secret_key.derived_key(t.clone(), chaincode);
+    /// 
+    /// assert_eq!(derived_public_key, derived_keypair.public);
+    /// assert_eq!(derived_secret_key, derived_keypair.secret);
+    /// ```
     fn derived_key<T>(&self, t: T, cc: ChainCode) -> (Self, ChainCode)
-    where T: SigningTranscript;
+    where
+        T: SigningTranscript;
 
-    /// Derive key with subkey identified by a byte array 
+    /// Derive key with subkey identified by a byte array
     /// and a chain code.  We do not include a context here
     /// because the chain code could serve this purpose.
+    /// 
+    /// # Example:
+    /// 
+    /// ```
+    /// use schnorrkel::{Keypair,derive::{CHAIN_CODE_LENGTH, ChainCode, Derivation}};
+    ///
+    /// let t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
+    /// let chaincode = ChainCode([0u8; CHAIN_CODE_LENGTH]); // This is an example. In practice, we should use a random value.
+    /// 
+    /// let keypair: Keypair = Keypair::generate();
+    /// let bytes = [0u8, 120u8, 243u8, 31u8, 67u8, 8u8];
+    /// let (derived_keypair, _) = keypair.derived_key_simple(chaincode, &bytes);
+    /// ```
     fn derived_key_simple<B: AsRef<[u8]>>(&self, cc: ChainCode, i: B) -> (Self, ChainCode) {
         let mut t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
         t.append_message(b"sign-bytes", i.as_ref());
@@ -68,12 +106,14 @@ pub trait Derivation : Sized {
 
     /// Derive key with subkey identified by a byte array
     /// and a chain code, and with external randomnesses.
-    fn derived_key_simple_rng<B,R>(&self, cc: ChainCode, i: B, rng: R) -> (Self, ChainCode)
-    where B: AsRef<[u8]>, R: RngCore+CryptoRng
+    fn derived_key_simple_rng<B, R>(&self, cc: ChainCode, i: B, rng: R) -> (Self, ChainCode)
+    where
+        B: AsRef<[u8]>,
+        R: RngCore + CryptoRng,
     {
         let mut t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
         t.append_message(b"sign-bytes", i.as_ref());
-        self.derived_key(super::context::attach_rng(t,rng), cc)
+        self.derived_key(super::context::attach_rng(t, rng), cc)
     }
 }
 
@@ -87,10 +127,11 @@ impl PublicKey {
     ///
     /// We update the signing transcript as a side effect.
     fn derive_scalar_and_chaincode<T>(&self, t: &mut T, cc: ChainCode) -> (Scalar, ChainCode)
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
-        t.commit_bytes(b"chain-code",&cc.0);
-        t.commit_point(b"public-key",self.as_compressed());
+        t.commit_bytes(b"chain-code", &cc.0);
+        t.commit_point(b"public-key", self.as_compressed());
 
         let scalar = t.challenge_scalar(b"HDKD-scalar");
 
@@ -115,17 +156,21 @@ impl SecretKey {
     /// permissible mutations of `SecretKey`.  This means only that
     /// we hash the `SecretKey`'s scalar, but not its nonce because
     /// the secret key remains valid if the nonce is changed.
-    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(&self, cc: Option<ChainCode>, i: B)
-     -> (MiniSecretKey,ChainCode)
-    {
+    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(
+        &self,
+        cc: Option<ChainCode>,
+        i: B,
+    ) -> (MiniSecretKey, ChainCode) {
         let mut t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
         t.append_message(b"sign-bytes", i.as_ref());
 
-        if let Some(c) = cc { t.append_message(b"chain-code", &c.0); }
-        t.append_message(b"secret-key",& self.key.to_bytes() as &[u8]);
+        if let Some(c) = cc {
+            t.append_message(b"chain-code", &c.0);
+        }
+        t.append_message(b"secret-key", &self.key.to_bytes() as &[u8]);
 
-        let mut msk = [0u8; MINI_SECRET_KEY_LENGTH]; 
-        t.challenge_bytes(b"HDKD-hard",&mut msk);
+        let mut msk = [0u8; MINI_SECRET_KEY_LENGTH];
+        t.challenge_bytes(b"HDKD-hard", &mut msk);
 
         let mut chaincode = [0u8; 32];
         t.challenge_bytes(b"HDKD-chaincode", &mut chaincode);
@@ -148,10 +193,13 @@ impl MiniSecretKey {
     /// permissible mutations of `SecretKey`.  This means only that
     /// we hash the `SecretKey`'s scalar, but not its nonce because
     /// the secret key remains valid if the nonce is changed.
-    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(&self, cc: Option<ChainCode>, i: B, mode: ExpansionMode)
-     -> (MiniSecretKey,ChainCode)
-    {
-        self.expand(mode).hard_derive_mini_secret_key(cc,i)
+    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(
+        &self,
+        cc: Option<ChainCode>,
+        i: B,
+        mode: ExpansionMode,
+    ) -> (MiniSecretKey, ChainCode) {
+        self.expand(mode).hard_derive_mini_secret_key(cc, i)
     }
 }
 
@@ -169,17 +217,37 @@ impl Keypair {
     /// permissible mutations of `SecretKey`.  This means only that
     /// we hash the `SecretKey`'s scalar, but not its nonce because
     /// the secret key remains valid if the nonce is changed.
-    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(&self, cc: Option<ChainCode>, i: B)
-     -> (MiniSecretKey,ChainCode) {
-        self.secret.hard_derive_mini_secret_key(cc,i)
+    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(
+        &self,
+        cc: Option<ChainCode>,
+        i: B,
+    ) -> (MiniSecretKey, ChainCode) {
+        self.secret.hard_derive_mini_secret_key(cc, i)
     }
 
     /// Derive a secret key and new chain code from a key pair and chain code.
     ///
     /// We expect the trait methods of `Keypair as Derivation` to be
     /// more useful since signing anything requires the public key too.
+    /// 
+    /// # Example:
+    /// 
+    /// ```
+    /// use schnorrkel::{Keypair,derive::{CHAIN_CODE_LENGTH, ChainCode}};
+    /// # use crate::schnorrkel::derive::Derivation;
+    ///
+    /// let t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
+    /// let chaincode = ChainCode([0u8; CHAIN_CODE_LENGTH]); // This is an example. In practice, we should use a random value.
+    /// let keypair: Keypair = Keypair::generate();
+    /// # let t1 = t.clone();
+    /// let (secret_key, chaincode1) = keypair.derive_secret_key(t, chaincode);
+    /// # let derived_keypair = keypair.derived_key(t1, chaincode).0;
+    /// # assert_eq!(chaincode.0.len(), chaincode1.0.len());
+    /// # assert_eq!(secret_key, derived_keypair.secret);
+    /// ```
     pub fn derive_secret_key<T>(&self, mut t: T, cc: ChainCode) -> (SecretKey, ChainCode)
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
         let (scalar, chaincode) = self.public.derive_scalar_and_chaincode(&mut t, cc);
 
@@ -190,18 +258,20 @@ impl Keypair {
         // We employ the witness mechanism here so that CSPRNG associated to our
         // `SigningTranscript` makes our new nonce seed independent from everything.
         let mut nonce = [0u8; 32];
-        t.witness_bytes(b"HDKD-nonce", &mut nonce, &[&self.secret.nonce, &self.secret.to_bytes() as &[u8]]);
+        t.witness_bytes(
+            b"HDKD-nonce",
+            &mut nonce,
+            &[&self.secret.nonce, &self.secret.to_bytes() as &[u8]],
+        );
 
-        (SecretKey {
-            key: self.secret.key + scalar,
-            nonce,
-        }, chaincode)
+        (SecretKey { key: self.secret.key + scalar, nonce }, chaincode)
     }
 }
 
 impl Derivation for Keypair {
     fn derived_key<T>(&self, t: T, cc: ChainCode) -> (Keypair, ChainCode)
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
         let (secret, chaincode) = self.derive_secret_key(t, cc);
         let public = secret.to_public();
@@ -211,7 +281,8 @@ impl Derivation for Keypair {
 
 impl Derivation for SecretKey {
     fn derived_key<T>(&self, t: T, cc: ChainCode) -> (SecretKey, ChainCode)
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
         self.clone().to_keypair().derive_secret_key(t, cc)
     }
@@ -219,7 +290,8 @@ impl Derivation for SecretKey {
 
 impl Derivation for PublicKey {
     fn derived_key<T>(&self, mut t: T, cc: ChainCode) -> (PublicKey, ChainCode)
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
         let (scalar, chaincode) = self.derive_scalar_and_chaincode(&mut t, cc);
         let point = self.as_point() + RistrettoPoint::mul_base(&scalar);
@@ -245,18 +317,35 @@ pub struct ExtendedKey<K> {
 impl<K: Derivation> ExtendedKey<K> {
     /// Derive key with subkey identified by a byte array
     /// presented as a hash, and a chain code.
+    /// 
+    /// # Example:
+    /// 
+    /// ```
+    /// use schnorrkel::{Keypair,derive::{CHAIN_CODE_LENGTH, ChainCode, Derivation, ExtendedKey}};
+    ///
+    /// let t = merlin::Transcript::new(b"SchnorrRistrettoHDKD");
+    /// let chaincode = ChainCode([0u8; CHAIN_CODE_LENGTH]); // This is an example. In practice, we should use a random value.
+    /// let keypair: Keypair = Keypair::generate();
+    /// 
+    /// let extended = ExtendedKey::<Keypair> {key: keypair, chaincode};
+    /// # let t1 = t.clone();
+    /// let ExtendedKey {key: extended_derived_keypair, .. } = extended.derived_key(t.clone());
+    /// # let (derived_keypair, _) = extended.key.derived_key(t1, extended.chaincode);
+    /// # assert_eq!(derived_keypair.public, extended_derived_keypair.public);
+    /// # assert_eq!(derived_keypair.secret, extended_derived_keypair.secret);
+    /// ```
     pub fn derived_key<T>(&self, t: T) -> ExtendedKey<K>
-    where T: SigningTranscript
+    where
+        T: SigningTranscript,
     {
-        let (key, chaincode) = self.key.derived_key(t, self.chaincode.clone());
+        let (key, chaincode) = self.key.derived_key(t, self.chaincode);
         ExtendedKey { key, chaincode }
     }
 
-    /// Derive key with subkey identified by a byte array and 
+    /// Derive key with subkey identified by a byte array and
     /// a chain code in the extended key.
-    pub fn derived_key_simple<B: AsRef<[u8]>>(&self, i: B) -> ExtendedKey<K>
-    {
-        let (key, chaincode) = self.key.derived_key_simple(self.chaincode.clone(), i);
+    pub fn derived_key_simple<B: AsRef<[u8]>>(&self, i: B) -> ExtendedKey<K> {
+        let (key, chaincode) = self.key.derived_key_simple(self.chaincode, i);
         ExtendedKey { key, chaincode }
     }
 }
@@ -275,10 +364,12 @@ impl ExtendedKey<SecretKey> {
     /// permissible mutations of `SecretKey`.  This means only that
     /// we hash the `SecretKey`'s scalar, but not its nonce because
     /// the secret key remains valid if the nonce is changed.
-    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(&self, i: B, mode: ExpansionMode)
-     -> ExtendedKey<SecretKey> 
-     {
-        let (key,chaincode) = self.key.hard_derive_mini_secret_key(Some(self.chaincode), i);
+    pub fn hard_derive_mini_secret_key<B: AsRef<[u8]>>(
+        &self,
+        i: B,
+        mode: ExpansionMode,
+    ) -> ExtendedKey<SecretKey> {
+        let (key, chaincode) = self.key.hard_derive_mini_secret_key(Some(self.chaincode), i);
         let key = key.expand(mode);
         ExtendedKey { key, chaincode }
     }
@@ -286,26 +377,23 @@ impl ExtendedKey<SecretKey> {
 
 #[cfg(test)]
 mod tests {
-    use sha3::digest::{Update}; // ExtendableOutput,XofReader
-    use sha3::{Shake128};
+    use shake::digest::{Update}; // ExtendableOutput,XofReader
+    use shake::{Shake128};
 
     use super::*;
 
+    #[cfg(feature = "getrandom")]
     #[test]
     fn derive_key_public_vs_private_paths() {
         let chaincode = ChainCode([0u8; CHAIN_CODE_LENGTH]);
-        let msg : &'static [u8] = b"Just some test message!";
+        let msg: &'static [u8] = b"Just some test message!";
         let mut h = Shake128::default().chain(msg);
 
-        // #[cfg(feature = "getrandom")]
         let mut csprng = rand_core::OsRng;
         let key = Keypair::generate_with(&mut csprng);
 
-        let mut extended_public_key = ExtendedKey {
-            key: key.public.clone(),
-            chaincode,
-        };
-        let mut extended_keypair = ExtendedKey { key, chaincode, };
+        let mut extended_public_key = ExtendedKey { key: key.public.clone(), chaincode };
+        let mut extended_keypair = ExtendedKey { key, chaincode };
 
         let ctx = signing_context(b"testing testing 1 2 3");
 
@@ -335,11 +423,11 @@ mod tests {
                     "Verification of a valid signature failed!"
                 );
                 assert!(
-                    ! extended_public_key.key.verify(ctx.xof(h.clone()), &bad_sig).is_ok(),
+                    !extended_public_key.key.verify(ctx.xof(h.clone()), &bad_sig).is_ok(),
                     "Verification of a signature on a different message passed!"
                 );
                 assert!(
-                    ! extended_public_key.key.verify(ctx.xof(h_bad), &good_sig).is_ok(),
+                    !extended_public_key.key.verify(ctx.xof(h_bad), &good_sig).is_ok(),
                     "Verification of a signature on a different message passed!"
                 );
             }

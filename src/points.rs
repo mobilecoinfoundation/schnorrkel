@@ -17,25 +17,22 @@
 // We're discussing including some variant in curve25519-dalek directly in
 // https://github.com/dalek-cryptography/curve25519-dalek/pull/220
 
-
 use core::fmt::{Debug};
 
-use curve25519_dalek::ristretto::{CompressedRistretto,RistrettoPoint};
-use subtle::{ConstantTimeEq,Choice};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use subtle::{ConstantTimeEq, Choice};
 // use curve25519_dalek::scalar::Scalar;
 
-use crate::errors::{SignatureError,SignatureResult};
-
+use crate::errors::{SignatureError, SignatureResult};
 
 /// Compressed Ristretto point length
 pub const RISTRETTO_POINT_LENGTH: usize = 32;
-
 
 /// A `RistrettoBoth` contains both an uncompressed `RistrettoPoint`
 /// as well as the corresponding `CompressedRistretto`.  It provides
 /// a convenient middle ground for protocols that both hash compressed
 /// points to derive scalars for use with uncompressed points.
-#[derive(Copy, Clone, Default, Eq)]  // PartialEq optimized below
+#[derive(Copy, Clone, Default, Eq)] // PartialEq optimized below
 pub struct RistrettoBoth {
     compressed: CompressedRistretto,
     point: RistrettoPoint,
@@ -49,28 +46,13 @@ impl Debug for RistrettoBoth {
 
 impl ConstantTimeEq for RistrettoBoth {
     fn ct_eq(&self, other: &RistrettoBoth) -> Choice {
-       self.compressed.ct_eq(&other.compressed)
+        self.compressed.ct_eq(&other.compressed)
     }
 }
 
-/*
-#[inline(always)]
-fn zeroize_hack<Z: Default>(z: &mut Z) {
-    use core::{ptr, sync::atomic};
-    unsafe { ptr::write_volatile(z, Z::default()); }
-    atomic::compiler_fence(atomic::Ordering::SeqCst);
-}
-
-impl zeroize::Zeroize for RistrettoBoth {
-    fn zeroize(&mut self) {
-        zeroize_hack(&mut self.compressed);
-        zeroize_hack(&mut self.point);
-    }
-}
-*/
-
+#[rustfmt::skip]
 impl RistrettoBoth {
-    const DESCRIPTION : &'static str = "A ristretto point represented as a 32-byte compressed point";
+    const DESCRIPTION: &'static str = "A ristretto point represented as a 32-byte compressed point";
 
     // I dislike getter methods, and prefer direct field access, but doing
     // getters here permits the fields being private, and gives us faster
@@ -117,9 +99,9 @@ impl RistrettoBoth {
     /// # Example
     ///
     /// ```
-    /// use schnorrkel_og::points::RistrettoBoth;
-    /// use schnorrkel_og::PUBLIC_KEY_LENGTH;
-    /// use schnorrkel_og::SignatureError;
+    /// use schnorrkel::points::RistrettoBoth;
+    /// use schnorrkel::PUBLIC_KEY_LENGTH;
+    /// use schnorrkel::SignatureError;
     ///
     /// # fn doctest() -> Result<RistrettoBoth, SignatureError> {
     /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
@@ -168,44 +150,18 @@ impl PartialEq<Self> for RistrettoBoth {
         debug_assert_eq!(r, self.point.eq(&other.point));
         r
     }
-
-    // fn ne(&self, other: &Rhs) -> bool {
-    //   self.compressed.0.ne(&other.compressed.0)
-    // }
 }
-
-// impl Eq for RistrettoBoth {}
 
 impl PartialOrd<RistrettoBoth> for RistrettoBoth {
     fn partial_cmp(&self, other: &RistrettoBoth) -> Option<::core::cmp::Ordering> {
-        self.compressed.0.partial_cmp(&other.compressed.0)
+        Some(self.cmp(other))
     }
-
-    // fn lt(&self, other: &Rhs) -> bool {
-    //    self.compressed.0.lt(&other.compressed.0)
-    // }
-    // fn le(&self, other: &Rhs) -> bool {
-    //    self.compressed.0.le(&other.compressed.0)
-    // }
-    // fn gt(&self, other: &Rhs) -> bool {
-    //    self.compressed.0.gt(&other.compressed.0)
-    // }
-    // fn ge(&self, other: &Rhs) -> bool {
-    //    self.compressed.0.ge(&other.compressed.0)
-    // }
 }
 
 impl Ord for RistrettoBoth {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.compressed.0.cmp(&other.compressed.0)
     }
-
-    // fn max(self, other: Self) -> Self {
-    //    self.compressed.0.max(other.compressed.0)
-    // }
-    // fn min(self, other: Self) -> Self {
-    //    self.compressed.0.min(other.compressed.0)
-    // }
 }
 
 impl core::hash::Hash for RistrettoBoth {
